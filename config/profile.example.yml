@@ -1,134 +1,131 @@
-# Career-Ops Profile Configuration
+# gig-ops Profile Configuration
 # Copy this file to config/profile.yml and fill in your details.
 # This is the single source of truth for your personal data across all modes.
+#
+# Run: cp config/profile.example.yml config/profile.yml
 
-candidate:
+freelancer:
   full_name: "Jane Smith"
   email: "jane@example.com"
-  phone: "+1-555-0123"
-  location: "San Francisco, CA"
-  linkedin: "linkedin.com/in/janesmith"
+  location: "Remote"
   portfolio_url: "https://janesmith.dev"
   github: "github.com/janesmith"
-  twitter: "https://x.com/janesmith"
+  reddit: "u/janesmith"
+  timezone: "UTC-5"
 
-target_roles:
-  # Your North Star roles — what you're optimizing for
+# ─── Services ─────────────────────────────────────────────────────────────────
+# What you offer. Used by /gig (fit scoring) and /proposal (tailoring).
+services:
+  # Your primary offerings
   primary:
-    - "Senior AI Engineer"
-    - "Staff ML Engineer"
-  # Archetypes help the evaluation system score fit
-  archetypes:
-    - name: "AI/ML Engineer"
-      level: "Senior/Staff"
-      fit: "primary"        # primary = dream role, secondary = good fit, adjacent = stretch
-    - name: "AI Product Manager"
-      level: "Senior"
-      fit: "secondary"
-    - name: "Solutions Architect"
-      level: "Mid-Senior"
-      fit: "adjacent"
+    - "Full-stack web development (React, Node.js)"
+    - "API design and integration"
+  # Secondary / stretch
+  secondary:
+    - "Technical consulting"
+    - "Code review"
 
+# Archetypes: map your services to concrete roles the scoring system understands.
+# fit: primary = core offering, secondary = can do well, adjacent = stretch
+archetypes:
+  - name: "Full-stack Developer"
+    stack: ["React", "Node.js", "TypeScript", "PostgreSQL"]
+    fit: "primary"
+  - name: "API / Backend Developer"
+    stack: ["Node.js", "REST", "GraphQL"]
+    fit: "primary"
+  - name: "Frontend Developer"
+    stack: ["React", "Next.js", "Tailwind"]
+    fit: "secondary"
+  - name: "Technical Consultant"
+    fit: "adjacent"
+
+# ─── Narrative ────────────────────────────────────────────────────────────────
 narrative:
-  # Your professional headline (1 line)
-  headline: "ML Engineer turned AI product builder"
-  # Your exit story — what makes you unique
-  exit_story: "Built and sold my SaaS after 5 years. Now focused on applied AI at scale."
-  # Your top 3-5 superpowers
+  headline: "Full-stack developer who ships fast and communicates clearly"
+  # What makes you different from the 50 other people who'll respond
+  differentiator: "I've built and shipped 3 products solo. I work async, I don't need hand-holding."
   superpowers:
-    - "End-to-end ML pipelines"
-    - "Fast prototyping (idea to prod in 2 weeks)"
-    - "Cross-functional communication"
-  # Proof points — projects, articles, case studies with measurable impact
+    - "Turning vague requirements into working software quickly"
+    - "Clear, concise async communication"
+    - "Full product ownership — design → build → deploy"
+  # Proof points for /proposal — concrete work samples with impact
   proof_points:
-    - name: "Project Alpha"
-      url: "https://janesmith.dev/project-alpha"
-      hero_metric: "Reduced inference latency 40%"
-    - name: "Open Source Tool"
+    - name: "SaaS dashboard rebuild"
+      url: "https://janesmith.dev/work/saas-rebuild"
+      hero_metric: "Cut load time 60%, increased trial-to-paid 18%"
+    - name: "REST API for fintech startup"
+      url: "https://janesmith.dev/work/fintech-api"
+      hero_metric: "Handled 10K req/min on launch day, zero downtime"
+    - name: "Open source CLI tool"
       url: "https://github.com/janesmith/tool"
-      hero_metric: "2K+ GitHub stars"
-  # Optional: dashboard/demo URL with credentials
-  # dashboard:
-  #   url: "https://janesmith.dev/demo"
-  #   password: "demo-2026"
+      hero_metric: "800+ GitHub stars"
 
-compensation:
-  target_range: "$150K-200K"     # Your target total comp
-  currency: "USD"
-  minimum: "$120K"               # Walk-away number
-  location_flexibility: "Remote preferred, 1 week/month on-site possible"
+# ─── Rate card ────────────────────────────────────────────────────────────────
+rate_card:
+  # Target and walk-away rates. Used by budget scoring and negotiation scripts.
+  hourly:
+    target: 80      # $/hr you aim for
+    walk_away: 40   # $/hr below which you decline
+  project:
+    min: 300        # minimum fixed-price project budget you'll consider
+  # Payment models you accept
+  accepted_models:
+    - "hourly"
+    - "fixed"
+  # Models you decline by default (override per-gig with /gig --override)
+  declined_models:
+    - "unpaid"
+    - "equity"
+    - "revenue_share"
 
-location:
-  country: "United States"
-  city: "San Francisco"
-  timezone: "PST"
-  visa_status: "No sponsorship needed"
-  # For remote roles outside your country:
-  # onsite_availability: "1 week/month in any city"
+# ─── Ideal gig profile ────────────────────────────────────────────────────────
+ideal_gig:
+  # Scope: what kind of engagement you enjoy
+  preferred_scope:
+    - "well-defined feature or module"
+    - "API integration"
+    - "performance fix"
+    - "greenfield small app"
+  avoid_scope:
+    - "vague 'build me a startup'"
+    - "on-call / maintenance retainer with no clear end"
+  # Duration sweet spot
+  duration:
+    min_days: 1
+    max_days: 60
+  # Keywords that make a gig more attractive (boost scoring)
+  green_flags:
+    - "spec ready"
+    - "design done"
+    - "well-documented"
+    - "async-friendly"
+    - "good communication"
+  # Keywords that trigger extra scrutiny (not auto-decline, but flag for review)
+  yellow_flags:
+    - "MVP"
+    - "ASAP"
+    - "simple"
+    - "quick"
+    - "just need"
 
-# Optional follow-up cadence preferences for `node followup-cadence.mjs`.
-# CLI flags still win for one-off runs (for example `--applied-days 10`).
-# followup_cadence:
-#   applied_first_days: 7
-#   applied_subsequent_days: 7
-#   applied_max_followups: 2
-#   responded_initial_days: 1
-#   responded_subsequent_days: 3
-#   interview_thankyou_days: 1
+# ─── Proposal settings ────────────────────────────────────────────────────────
+proposal:
+  # Default channel style
+  default_channel: "dm"       # dm | email
+  # Length target
+  length: "short"             # short (3-5 sentences) | medium (1-2 paragraphs) | full
+  # Include proof point links in proposals?
+  include_proof_links: true
+  max_proof_links: 2
 
-cv:
-  output_format: "html" # "html" (default) or "latex"
-  # (Optional) Canva resume design ID for visual CV generation via /career-ops pdf.
-  # Find it in your Canva design URL: https://www.canva.com/design/DAxxxxxxx/...
-  # The ID starts with "D" and is 11 characters long.
-  # canva_resume_design_id: "DAxxxxxxxxx"
+# ─── Output ───────────────────────────────────────────────────────────────────
+output:
+  # Auto-generate PDF for gigs scoring >= this threshold (0 = never auto, 5 = always)
+  auto_pdf_threshold: 4.0
+  # Report numbering start
+  report_start: 1
 
-# ── Cover Letter Settings ──────────────────────────────────────────────────
-#
-# Used by `/career-ops cover` and the cover letter sub-flow in `/career-ops pdf`.
-# All fields are optional — omit any you don't need.
-
-cover_letter:
-  # Your notice period in calendar days. Surfaced as a prompt default when the
-  # JD requests an immediate start. The user confirms the actual value before it
-  # appears in the letter.
-  notice_period_days: 30
-
-  # Your current professional domain (used to detect domain gaps vs the JD).
-  # Plain English, e.g. "digital media", "fintech", "healthcare IT".
-  primary_domain: "your current domain"
-
-  # Languages you are actively learning. Each entry MAY produce a closing
-  # sentence in that language IF the JD location matches one of the listed
-  # countries AND the user confirms inclusion during the cover letter flow.
-  # Remove the block entirely if not applicable.
-  language_learning:
-    - language: Spanish
-      current_level: B1
-      target_level: B2
-      target_date: "end of 2026"
-      # The sentence to include, written in that language. Keep it one line.
-      sentence: "Estoy aprendiendo español y espero alcanzar el nivel B2 a finales de 2026."
-      # Only trigger this entry when the JD location is in one of these countries.
-      countries: [Spain, Mexico, Argentina, Colombia, Chile]
-
-# ── Auto-PDF threshold ──────────────────────────────────────────────────────
-#
-# Auto-PDF threshold during evaluation (used by `/career-ops pipeline` and
-# `bash batch/batch-runner.sh`).
-#
-# An offer's tailored CV PDF is auto-generated only when its score is
-# >= this threshold. Generating a PDF costs ~30-60s per offer (Playwright
-# launch + HTML render), and most offers in a scan score 2.x/3.x and never
-# become an actual application — so the gate avoids wasted renders.
-#
-# Default (key absent OR commented out): 3.0 — the original gate of
-# `/career-ops pipeline`. Both evaluation paths apply the same default, so
-# a batch run and an interactive run treat the same offer identically.
-#
-# Raise it (e.g. 4.0) to auto-generate PDFs only for stronger matches and
-# leave the rest report-only — those can still be produced on demand via
-# `/career-ops pdf {company-slug}`. Fractional thresholds work (e.g. 3.5 —
-# half-point scores like 3.5/5 occur in evaluations). Set it to 0 to
-# generate a PDF for every offer.
-# auto_pdf_score_threshold: 4.0
+# ─── Locale ───────────────────────────────────────────────────────────────────
+# Default is English. Set to "es" to activate Spanish modes (modes/es/).
+locale: en

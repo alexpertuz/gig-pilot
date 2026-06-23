@@ -1,92 +1,88 @@
-// Type catalog for the provider plugin contract.
+// providers/_types.js
 //
-// This file is documentation-only — pure JSDoc @typedef annotations. The
-// project is plain ESM JavaScript with no build step; provider authors can
-// reference these types via `/** @typedef {import('./_types.js').Provider} Provider */`
-// at the top of a `// @ts-check`-enabled file to get IDE hints. The runtime
-// contract is enforced by scan.mjs (id presence, fetch is a function, fetch
-// returns an array), not by these annotations.
+// Documentation-only JSDoc types for the gig-ops provider contract.
+// This file is NOT imported at runtime — it's a catalog for tooling and documentation.
+// Providers must implement the Provider interface below.
 //
-// Files prefixed with _ are never loaded as providers by scan.mjs.
+// Import type annotation (for IDE support only):
+//   /** @type {import('./_types.js').Provider} */
 
 /**
- * Normalized job posting — the unit of currency throughout the scanner.
+ * A normalized gig posting.
+ * Every provider's fetch() must return an array of these.
  *
- * @typedef {object} Job
- * @property {string} title    Required, non-empty after trim.
- * @property {string} url      Required, absolute URL — used as the dedup key.
- * @property {string} company  May be empty when the source can't expose it
- *                             at the list-page level; populated downstream.
- * @property {string} location May be empty.
- * @property {string} [description] Job description text, populated ONLY when the
- *                               provider's list payload carries it for free (no
- *                               extra per-job request — the scanner is zero-token).
- *                               Lever supplies it via `descriptionPlain`; most
- *                               providers omit it. Consumed by scan.mjs's
- *                               content_filter; an empty/absent value always
- *                               passes the filter.
- * @property {number} [postedAt] Epoch ms when the posting was published.
- *                               Omitted when the source doesn't expose a
- *                               usable date. scan.mjs ignores it; consumers
- *                               like scan-ats-full.mjs use it for recency
- *                               filtering.
+ * Fields marked optional may be undefined when the source does not expose them.
+ * scan.mjs's filters operate on whichever fields are present; missing fields
+ * are treated as "unknown" (not filtered out) unless the filter explicitly
+ * requires the field.
+ *
+ * @typedef {object} Gig
+ * @property {string} title       - Gig title or posting subject (required)
+ * @property {string} url         - Canonical URL of the posting (required, used for dedup)
+ * @property {string} poster      - Poster handle or company name (required)
+ * @property {string} source      - Provider ID that produced this entry (required, set by scan.mjs)
+ * @property {string} [location]  - Location string ("remote", city, etc.) or empty = remote
+ * @property {string} [description] - Full post text. Used for content_filter matching.
+ *                                    Zero-token: scan.mjs filters on this, never sends to LLM.
+ * @property {string} [postedAt]  - ISO 8601 date string (YYYY-MM-DD or full datetime)
+ * @property {string} [budget]    - Raw budget/rate string from the source
+ *                                    e.g. "$50/hr", "$500 fixed", "€800", "negotiable"
+ * @property {PaymentModel} [paymentModel] - Normalized payment model (derived by provider or scan.mjs)
+ * @property {Channel} [channel]  - How to respond to this gig
+ * @property {number} [posterScore] - Source-specific trust score (0–100).
+ *                                    For Reddit: derived from account age + karma.
+ *                                    Used by legitimacy scoring in modes/gig.md.
+ * @property {object} [_raw]      - Original source object for debugging (not written to pipeline.md)
  */
 
 /**
- * A single `tracked_companies` entry from `portals.yml`.
+ * Payment model of a gig.
+ * Providers should set this when the source makes it clear.
+ * scan.mjs can also derive it from budget strings via parseCompensation.
  *
- * Provider-specific fields are opaque to scan.mjs and validated by the
- * provider itself. Examples in current providers: `api`, `careers_url`.
- * Providers read these directly off the entry object — no schema enforcement
- * at the framework level.
- *
- * @typedef {object} PortalEntry
- * @property {string}             name             User-facing label; appears in logs and placeholders.
- * @property {boolean}            [enabled]        Default: true.
- * @property {string}             [careers_url]    Public listing URL; consumed by detect().
- * @property {string}             [api]            JSON API URL; used directly by greenhouse/ashby providers.
- * @property {string}             [provider]       Explicit provider id — bypasses detect().
- * @property {('http')}           [transport]      Default: 'http'. Reserved for future transports.
+ * @typedef {'paid'|'hourly'|'fixed'|'equity'|'unpaid'|'unknown'} PaymentModel
  */
 
 /**
- * Returned by `detect()` when a provider claims an entry. `url` is
- * informational (used in logs); routing only checks for a non-null return.
+ * Channel through which to respond to this gig.
  *
- * @typedef {object} DetectHit
- * @property {string} url
+ * @typedef {'dm'|'email'|'comment'|'apply'|'unknown'} Channel
  */
 
 /**
- * Options forwarded to the underlying `fetch` call.
+ * A gig source entry from sources.yml.
+ * Passed to provider.fetch() as the first argument.
  *
- * @typedef {object} FetchOptions
- * @property {number}                [timeoutMs]
- * @property {Object<string,string>} [headers]
- * @property {string}                [method]
- * @property {(string|null)}         [body]
- * @property {('error'|'follow'|'manual')} [redirect]
+ * @typedef {object} SourceEntry
+ * @property {string} name        - Human-readable name (e.g. "r/forhire")
+ * @property {string} [provider]  - Explicit provider id override
+ * @property {boolean} [enabled]  - Set false to skip
+ * @property {string} [subreddit] - For Reddit provider: subreddit name (no r/ prefix)
+ * @property {string[]} [search_queries] - For Reddit provider: search terms to use
+ * @property {string[]} [tags]    - For RemoteOK/WorkingNomads: tag filters
+ * @property {string[]} [categories] - For WorkingNomads: category filters
  */
 
 /**
- * What scan.mjs hands to provider.fetch(). For Phase A only `transport: 'http'`
- * is implemented; the shape reserves room for future transports without
- * breaking the contract.
+ * Shared context passed to every provider.fetch() call.
  *
- * @typedef {object} Context
- * @property {('http')} transport
- * @property {(url: string, opts?: FetchOptions) => Promise<string>}  fetchText
- * @property {(url: string, opts?: FetchOptions) => Promise<unknown>} fetchJson
+ * @typedef {object} FetchContext
+ * @property {(url: string, options?: object) => Promise<object>} fetchJson
+ *   Fetch JSON from a URL with SSRF protection (redirect: 'error').
+ *   Always use this instead of raw fetch() in providers.
+ * @property {number} [timeoutMs] - Per-request timeout in ms (default: 10000)
  */
 
 /**
- * The provider contract — the default export of every providers/*.mjs file
- * (excluding _-prefixed shared helpers).
+ * The provider contract. Every file in providers/*.mjs must export a default
+ * object matching this interface.
  *
  * @typedef {object} Provider
- * @property {string} id                                                       Unique across all loaded providers.
- * @property {((entry: PortalEntry) => (DetectHit | null))} [detect]           Optional auto-detection.
- * @property {(entry: PortalEntry, ctx: Context) => Promise<Job[]>} fetch      Required.
+ * @property {string} id          - Unique provider id (e.g. 'reddit', 'remoteok')
+ * @property {(entry: SourceEntry) => boolean} [detect]
+ *   Optional. Return true if this provider can handle the given entry without
+ *   an explicit `provider:` key. Used by scan.mjs to auto-detect providers.
+ * @property {(entry: SourceEntry, ctx: FetchContext) => Promise<Gig[]>} fetch
+ *   Fetch and normalize gigs from this source. Must return an array of Gig
+ *   objects. On error: throw (scan.mjs catches and logs). Never return null.
  */
-
-export {};

@@ -753,7 +753,9 @@ async function main() {
   }
   const config = rawConfig && typeof rawConfig === 'object' ? rawConfig : {};
   const companies = Array.isArray(config.tracked_companies) ? config.tracked_companies : [];
-  const boards = Array.isArray(config.job_boards) ? config.job_boards : [];
+  // Support both legacy job_boards and new gig_boards key
+  const boards = Array.isArray(config.gig_boards) ? config.gig_boards
+    : Array.isArray(config.job_boards) ? config.job_boards : [];
   const titleFilter = buildTitleFilter(config.title_filter);
   const locationFilter = buildLocationFilter(config.location_filter);
   const salaryFilter = buildSalaryFilter(config.salary_filter);
