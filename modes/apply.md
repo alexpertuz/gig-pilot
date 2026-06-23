@@ -96,7 +96,7 @@ For each question, generate the response following:
 2. **Previous Section G**: If a draft response exists, use it as a base and refine
 3. **"I'm choosing you" tone**: Same auto-pipeline framework
 4. **Specificity**: Reference something specific from the JD visible on screen
-5. **career-ops proof point**: Include in "Additional info" if there is a field for it
+5. **gig-ops proof point**: Include in "Additional info" if there is a field for it
 
 **Output format:**
 
@@ -127,7 +127,7 @@ Notes:
 If the candidate confirms that they submitted the application:
 1. Update status in `applications.md` from "Evaluated" to "Applied"
 2. Update Section G of the report with the final responses
-3. Suggest next step: `/career-ops contacto` for LinkedIn outreach
+3. Suggest next step: `/gig-ops contacto` for LinkedIn outreach
 
 ## Scroll handling
 

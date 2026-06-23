@@ -1,17 +1,16 @@
 {
-  "name": "career-ops",
+  "name": "gig-ops",
   "metadata": {
-    "description": "AI job search command center — evaluate offers, generate CVs, scan portals, track applications"
+    "description": "AI freelance pipeline — evaluate gigs, generate proposals, scan sources, track leads"
   },
   "owner": {
-    "name": "santifer",
-    "url": "https://santifer.io"
+    "name": "antoniopertuz"
   },
   "plugins": [
     {
-      "name": "career-ops",
+      "name": "gig-ops",
       "source": "./",
-      "description": "AI job search pipeline — evaluate offers, generate CVs, scan portals, track applications",
+      "description": "AI-powered freelance pipeline — evaluate gigs, generate proposals, scan sources, track leads",
       "category": "productivity"
     }
   ]

@@ -98,7 +98,7 @@ for (const path of requiredBootstrapPaths) {
 const twoPassManifestChecks = [
   {
     name: 'apply has a re-exec guard',
-    pattern: /CAREER_OPS_UPDATE_REEXEC/,
+    pattern: /GIG_OPS_UPDATE_REEXEC/,
   },
   {
     name: 'apply first updates update-system.mjs from FETCH_HEAD',
@@ -110,7 +110,7 @@ const twoPassManifestChecks = [
   },
   {
     name: 'apply carries the original backup branch across re-exec',
-    pattern: /CAREER_OPS_UPDATE_BACKUP_BRANCH/,
+    pattern: /GIG_OPS_UPDATE_BACKUP_BRANCH/,
   },
   {
     name: 'apply reads the target updater manifest from FETCH_HEAD',
@@ -151,7 +151,7 @@ for (const check of twoPassManifestChecks) {
   else fail(check.name);
 }
 
-for (const userPath of ['cv.md', 'config/profile.yml', 'modes/_profile.md', 'portals.yml', 'data/', 'reports/']) {
+for (const userPath of ['cv.md', 'config/profile.yml', 'modes/_profile.md', 'sources.yml', 'data/', 'reports/']) {
   if (userPaths.includes(userPath)) pass(`USER_PATHS protects ${userPath}`);
   else fail(`USER_PATHS missing ${userPath}`);
 }

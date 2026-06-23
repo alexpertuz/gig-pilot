@@ -3,7 +3,7 @@
  *
  * Markdown links resolve relative to the file that contains them, so a report
  * link in applications.md must be relative to wherever that tracker file lives:
- * `../reports/...` when the tracker is at `data/applications.md`, or
+ * `../reports/...` when the tracker is at `data/leads.md`, or
  * `reports/...` when it sits at the repo root.
  *
  * Report files canonically live in `<repoRoot>/reports/`, so we resolve the

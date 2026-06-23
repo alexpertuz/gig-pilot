@@ -5,14 +5,14 @@
  *
  * Providers live in providers/*.mjs and are loaded at startup. Each provider
  * exports a default object with:
- *   - id: string — matched against `provider:` in portals.yml
+ *   - id: string — matched against `provider:` in sources.yml
  *   - detect(entry): {url}|null — optional auto-detection from careers_url
  *   - fetch(entry, ctx): [{title,url,company,location}] — required
  *
  * Files prefixed with _ are shared helpers (e.g. _http.mjs) and are never
  * loaded as providers. Adding a new HTTP/API source = drop a *.mjs into
  * providers/. Local executable parsers use `providers/local-parser.mjs` when
- * `parser.command` + `parser.script` are set in portals.yml.
+ * `parser.command` + `parser.script` are set in sources.yml.
  *
  * A tracked_companies entry can set `provider:` explicitly to bypass
  * URL-based auto-detection. The `transport:` field is reserved for future
@@ -41,10 +41,10 @@ const parseYaml = yaml.load;
 
 // ── Config ──────────────────────────────────────────────────────────
 
-const PORTALS_PATH = process.env.CAREER_OPS_PORTALS || 'portals.yml';
+const PORTALS_PATH = process.env.GIG_OPS_SOURCES || 'sources.yml';
 const SCAN_HISTORY_PATH = 'data/scan-history.tsv';
 const PIPELINE_PATH = 'data/pipeline.md';
-const APPLICATIONS_PATH = 'data/applications.md';
+const APPLICATIONS_PATH = 'data/leads.md';
 const PROVIDERS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'providers');
 
 // Ensure required directories exist (fresh setup)
@@ -147,7 +147,7 @@ export function buildTitleFilter(titleFilter) {
 }
 
 // ── Location filter ─────────────────────────────────────────────────
-// Optional. If `location_filter` is absent from portals.yml, all locations pass.
+// Optional. If `location_filter` is absent from sources.yml, all locations pass.
 // Semantics (case-insensitive substring, in this order):
 //   - Empty / whitespace-only / non-string location → pass (don't penalize
 //     missing or malformed provider data)
@@ -158,7 +158,7 @@ export function buildTitleFilter(titleFilter) {
 //   - `allow` empty → pass (already cleared block)
 //   - `allow` non-empty → must match at least one keyword
 
-// Normalize a keyword list from portals.yml: tolerates a bare string
+// Normalize a keyword list from sources.yml: tolerates a bare string
 // (wrapped to a 1-item array), null/undefined (→ []), and non-string
 // entries (filtered out). Survivors are lowercased, trimmed, and any
 // resulting empty strings are dropped — an empty keyword would otherwise
@@ -190,7 +190,7 @@ export function buildLocationFilter(locationFilter) {
 }
 
 // ── Content filter ──────────────────────────────────────────────────
-// Optional. If `content_filter` is absent from portals.yml, all jobs pass.
+// Optional. If `content_filter` is absent from sources.yml, all jobs pass.
 // Filters on the job DESCRIPTION text to separate same-titled roles with
 // different stacks (a "Software Engineer" listing that mentions "PHP" vs one
 // that mentions "Rust"). Semantics (case-insensitive substring, in order):
@@ -221,7 +221,7 @@ export function buildContentFilter(contentFilter) {
 }
 
 // ── Salary filter ───────────────────────────────────────────────────
-// Optional. If `salary_filter` is absent from portals.yml, all salaries pass.
+// Optional. If `salary_filter` is absent from sources.yml, all salaries pass.
 // Semantics:
 //   - min/max are annual compensation filters (use annualized values)
 //   - max: 0 means "no upper limit"
@@ -506,10 +506,10 @@ export function formatScanHistoryRow(offer, date, status = 'added') {
 }
 
 // Standard skeleton created on fresh install — matches the format documented
-// in modes/pipeline.md and expected by /career-ops pipeline.
+// in modes/pipeline.md and expected by /gig-ops pipeline.
 const PIPELINE_SKELETON = `# Pipeline — Pending URLs
 
-Paste job URLs below as \`- [ ] {url}\` then run \`/career-ops pipeline\`.
+Paste job URLs below as \`- [ ] {url}\` then run \`/gig-ops pipeline\`.
 
 ## Pending
 
@@ -738,9 +738,9 @@ async function main() {
     process.exit(1);
   }
 
-  // 2. Read portals.yml
+  // 2. Read sources.yml
   if (!existsSync(PORTALS_PATH)) {
-    console.error('Error: portals.yml not found. Run onboarding first.');
+    console.error('Error: sources.yml not found. Run onboarding first.');
     process.exit(1);
   }
 
@@ -993,7 +993,7 @@ async function main() {
       console.log(`  • ${item.company} (${item.method})${hint}`);
     }
     if (agentHandoff.length > 25) {
-      console.log(`  … ${agentHandoff.length - 25} more omitted; narrow with --company or inspect portals.yml`);
+      console.log(`  … ${agentHandoff.length - 25} more omitted; narrow with --company or inspect sources.yml`);
     }
   }
 
@@ -1016,7 +1016,7 @@ async function main() {
     }
   }
 
-  console.log(`\n→ Run /career-ops pipeline to evaluate new offers.`);
+  console.log(`\n→ Run /gig-ops pipeline to evaluate new offers.`);
   console.log('→ Share results and get help: https://discord.gg/8pRpHETxa4');
 }
 

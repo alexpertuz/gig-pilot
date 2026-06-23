@@ -1,4 +1,4 @@
-# User Profile Context -- career-ops
+# User Profile Context -- gig-ops
 
 <!-- ============================================================
      THIS FILE IS YOURS. It will NEVER be auto-updated.

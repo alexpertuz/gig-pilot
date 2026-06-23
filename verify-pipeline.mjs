@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * verify-pipeline.mjs — Health check for career-ops pipeline integrity
+ * verify-pipeline.mjs — Health check for gig-ops pipeline integrity
  *
  * Checks:
  * 1. All statuses are canonical (per states.yml)
@@ -11,29 +11,29 @@
  * 6. No pending TSVs in tracker-additions/ (only in merged/ or archived/)
  * 7. states.yml canonical IDs for cross-system consistency
  *
- * Run: node career-ops/verify-pipeline.mjs
+ * Run: node gig-ops/verify-pipeline.mjs
  */
 
 import { readFileSync, readdirSync, existsSync, mkdirSync, unlinkSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-const CAREER_OPS = dirname(fileURLToPath(import.meta.url));
-// Support both layouts: data/applications.md (boilerplate) and applications.md (original).
-// CAREER_OPS_TRACKER overrides the path (used by tests and non-standard layouts).
-const APPS_FILE = process.env.CAREER_OPS_TRACKER
-  ? process.env.CAREER_OPS_TRACKER
-  : existsSync(join(CAREER_OPS, 'data/applications.md'))
-    ? join(CAREER_OPS, 'data/applications.md')
-    : join(CAREER_OPS, 'applications.md');
-const ADDITIONS_DIR = join(CAREER_OPS, 'batch/tracker-additions');
-const REPORTS_DIR = join(CAREER_OPS, 'reports');
-const STATES_FILE = existsSync(join(CAREER_OPS, 'templates/states.yml'))
-  ? join(CAREER_OPS, 'templates/states.yml')
-  : join(CAREER_OPS, 'states.yml');
+const GIG_OPS = dirname(fileURLToPath(import.meta.url));
+// Support both layouts: data/leads.md (boilerplate) and applications.md (original).
+// GIG_OPS_TRACKER overrides the path (used by tests and non-standard layouts).
+const APPS_FILE = process.env.GIG_OPS_TRACKER
+  ? process.env.GIG_OPS_TRACKER
+  : existsSync(join(GIG_OPS, 'data/leads.md'))
+    ? join(GIG_OPS, 'data/leads.md')
+    : join(GIG_OPS, 'applications.md');
+const ADDITIONS_DIR = join(GIG_OPS, 'batch/tracker-additions');
+const REPORTS_DIR = join(GIG_OPS, 'reports');
+const STATES_FILE = existsSync(join(GIG_OPS, 'templates/states.yml'))
+  ? join(GIG_OPS, 'templates/states.yml')
+  : join(GIG_OPS, 'states.yml');
 
 // Ensure required directories exist (fresh setup)
-mkdirSync(join(CAREER_OPS, 'data'), { recursive: true });
+mkdirSync(join(GIG_OPS, 'data'), { recursive: true });
 mkdirSync(REPORTS_DIR, { recursive: true });
 
 const CANONICAL_STATUSES = [
@@ -170,7 +170,7 @@ for (const e of entries) {
   const match = e.report.match(/\]\(([^)]+)\)/);
   if (!match) continue;
   const link = match[1];
-  if (!existsSync(join(TRACKER_DIR, link)) && !existsSync(join(CAREER_OPS, link))) {
+  if (!existsSync(join(TRACKER_DIR, link)) && !existsSync(join(GIG_OPS, link))) {
     error(`#${e.num}: Report not found: ${link}`);
     brokenReports++;
   }

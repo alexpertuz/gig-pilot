@@ -3,10 +3,10 @@
 /**
  * scan-ats-full.mjs — Reverse ATS discovery scanner. Part of #230.
  *
- * Where scan.mjs scans the companies you track in portals.yml, this script
+ * Where scan.mjs scans the companies you track in sources.yml, this script
  * inverts the direction: it walks public directories of companies per ATS
  * (Greenhouse, Lever, Ashby, Workday) and surfaces fresh postings that match
- * your portals.yml `title_filter` / `location_filter` — no manual company
+ * your sources.yml `title_filter` / `location_filter` — no manual company
  * curation needed.
  *
  * Company directories come from the public job-board-aggregator dataset
@@ -41,7 +41,7 @@ import { buildTitleFilter, buildLocationFilter, loadSeenUrls, appendToPipeline, 
 
 // ── Config ──────────────────────────────────────────────────────────
 
-const PORTALS_PATH = process.env.CAREER_OPS_PORTALS || 'portals.yml';
+const PORTALS_PATH = process.env.GIG_OPS_SOURCES || 'sources.yml';
 const PIPELINE_PATH = 'data/pipeline.md';
 const CACHE_DIR = 'data/cache/ats-companies';
 const CACHE_TTL_HOURS = 24;
@@ -220,14 +220,14 @@ async function main() {
   const cutoff = Date.now() - opts.sinceDays * 86_400_000;
 
   if (!existsSync(PORTALS_PATH)) {
-    console.error('Error: portals.yml not found. Run onboarding first — the reverse scan reuses its title_filter/location_filter.');
+    console.error('Error: sources.yml not found. Run onboarding first — the reverse scan reuses its title_filter/location_filter.');
     process.exit(1);
   }
   const config = yaml.load(readFileSync(PORTALS_PATH, 'utf-8'));
   const titleFilter = buildTitleFilter(config?.title_filter);
   const locationFilter = buildLocationFilter(config?.location_filter);
   if (!config?.title_filter?.positive?.length) {
-    console.error('⚠️  portals.yml has no title_filter.positive — every fresh posting on every board will match. Consider adding keywords.');
+    console.error('⚠️  sources.yml has no title_filter.positive — every fresh posting on every board will match. Consider adding keywords.');
   }
 
   console.log(`Reverse ATS scan — sources: ${opts.ats.join(', ')} | since ${opts.sinceDays}d${opts.limit < Infinity ? ` | limit ${opts.limit}/ats` : ''}${opts.liveness ? ' | liveness' : ''}${opts.dryRun ? ' | DRY RUN' : ''}`);
@@ -335,7 +335,7 @@ async function main() {
     }
   }
 
-  console.log(`\n→ Run /career-ops pipeline to evaluate new offers.`);
+  console.log(`\n→ Run /gig-ops pipeline to evaluate new offers.`);
 }
 
 // Only run main() when invoked directly, not when imported by tests.

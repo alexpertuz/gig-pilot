@@ -1,17 +1,17 @@
 {
-  "name": "career-ops",
-  "version": "1.6.0",
-  "description": "AI job search command center — evaluate offers, generate CVs, scan portals, track applications",
+  "name": "gig-ops",
+  "version": "0.1.0",
+  "description": "AI freelance pipeline — evaluate gigs, generate proposals, scan sources, track leads",
   "author": {
-    "name": "santifer",
-    "url": "https://santifer.io"
+    "name": "antoniopertuz"
   },
   "skills": true,
   "permissions": {
     "allow": [
       "Bash(node:*)",
-      "WebFetch(domain:boards-api.greenhouse.io)",
-      "WebFetch(domain:jobs.ashbyhq.com)",
+      "WebFetch(domain:www.reddit.com)",
+      "WebFetch(domain:remoteok.com)",
+      "WebFetch(domain:workingnomads.com)",
       "WebSearch"
     ]
   }

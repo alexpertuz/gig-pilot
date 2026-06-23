@@ -183,12 +183,12 @@ CV PDF generated: output/{path}
 
 Want a cover letter for this role too?
 - Say "yes" or "cover letter" to generate one now
-- Or run `/career-ops cover {slug}` later
+- Or run `/gig-ops cover {slug}` later
 ```
 
 Apply `voice-dna.md` (if present) to the cover letter — full guardrail, conversational voice included (Tier 1 + Tier 2). The CV PDF itself stays Tier 1 only (formal ATS register). See `_shared.md` → Voice DNA.
 
-If the user says yes, run the full cover letter flow from `modes/cover.md` in slug mode:
+If the user says yes, run the full cover letter flow from `modes/proposal.md` in slug mode:
 1. Load the existing `## Cover Letter Draft` from the evaluation report as a starting point
 2. Run company research (Step 3 of cover.md)
 3. Present keyword list for confirmation (Step 4)

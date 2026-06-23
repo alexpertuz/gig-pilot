@@ -1,6 +1,6 @@
 # Mode: tracker — Applications Tracker
 
-Read and display `data/applications.md`.
+Read and display `data/leads.md`.
 
 **Tracker Format:**
 

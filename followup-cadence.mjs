@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * followup-cadence.mjs — Follow-up Cadence Tracker for career-ops
+ * followup-cadence.mjs — Follow-up Cadence Tracker for gig-ops
  *
  * Parses applications.md + follow-ups.md, calculates follow-up cadence
  * for active applications, extracts contacts, and flags overdue entries.
@@ -16,12 +16,12 @@ import { join, dirname, relative, sep } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import yaml from 'js-yaml';
 
-const CAREER_OPS = dirname(fileURLToPath(import.meta.url));
-const APPS_FILE = existsSync(join(CAREER_OPS, 'data/applications.md'))
-  ? join(CAREER_OPS, 'data/applications.md')
-  : join(CAREER_OPS, 'applications.md');
-const FOLLOWUPS_FILE = join(CAREER_OPS, 'data/follow-ups.md');
-const PROFILE_FILE = process.env.CAREER_OPS_PROFILE || join(CAREER_OPS, 'config/profile.yml');
+const GIG_OPS = dirname(fileURLToPath(import.meta.url));
+const APPS_FILE = existsSync(join(GIG_OPS, 'data/leads.md'))
+  ? join(GIG_OPS, 'data/leads.md')
+  : join(GIG_OPS, 'applications.md');
+const FOLLOWUPS_FILE = join(GIG_OPS, 'data/follow-ups.md');
+const PROFILE_FILE = process.env.GIG_OPS_PROFILE || join(GIG_OPS, 'config/profile.yml');
 
 
 // --- CLI args ---
@@ -198,13 +198,13 @@ function extractContacts(notes) {
 }
 
 // --- Resolve report path ---
-export function resolveReportPath(reportField, appsFile = APPS_FILE, repoRoot = CAREER_OPS) {
+export function resolveReportPath(reportField, appsFile = APPS_FILE, repoRoot = GIG_OPS) {
   const match = reportField.match(/\]\(([^)]+)\)/);
   if (!match) return null;
   // Report links in the tracker are normalized relative to the tracker file's
   // own directory (see PR #760 — `merge-tracker.mjs --migrate`). Resolve against
   // dirname(APPS_FILE), not the project root, otherwise relative paths like
-  // `../reports/...` (the data/applications.md layout) escape above the project.
+  // `../reports/...` (the data/leads.md layout) escape above the project.
   const fullPath = join(dirname(appsFile), match[1]);
   const repoRelative = relative(repoRoot, fullPath).split(sep).join('/');
   if (repoRelative.startsWith('../') || repoRelative === '..' || !repoRelative.startsWith('reports/')) return null;

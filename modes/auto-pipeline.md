@@ -30,11 +30,11 @@ Do not continue to Step 1 until this gate is resolved.
 
 ## Step 1 — A-G Evaluation
 
-Execute the same as the `oferta` mode (read `modes/oferta.md` for all A-F blocks + Block G Posting Legitimacy).
+Execute the same as the `oferta` mode (read `modes/gig.md` for all A-F blocks + Block G Posting Legitimacy).
 
 ## Step 2 — Save Report .md
 
-Save the full evaluation in `reports/{###}-{company-slug}-{YYYY-MM-DD}.md` (see format in `modes/oferta.md`).
+Save the full evaluation in `reports/{###}-{company-slug}-{YYYY-MM-DD}.md` (see format in `modes/gig.md`).
 Include Block G in the saved report. Add **URL:** {url} and **Legitimacy:** {tier} to the report header.
 
 ## Step 3 — Generate PDF
@@ -82,6 +82,6 @@ If the final score is >= 4.5, generate a draft of responses for the application 
 
 ## Step 5 — Update Tracker
 
-Record it in `data/applications.md` with all columns including Report and PDF as ✅.
+Record it in `data/leads.md` with all columns including Report and PDF as ✅.
 
 **If any step fails**, continue with the next ones and mark the failed step as pending in the tracker.

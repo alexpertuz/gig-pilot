@@ -2,8 +2,8 @@
 
 Generates a tailored cover letter for any candidate from a job description.
 Works in two modes:
-- **Slug mode:** `/career-ops cover {slug}` — loads the existing evaluation report draft as a starting point
-- **Paste mode:** `/career-ops cover` or JD pasted directly — starts from scratch
+- **Slug mode:** `/gig-ops cover {slug}` — loads the existing evaluation report draft as a starting point
+- **Paste mode:** `/gig-ops cover` or JD pasted directly — starts from scratch
 
 ---
 
@@ -301,11 +301,11 @@ Assemble the JSON payload:
 }
 ```
 
-Write payload to `/tmp/cover-payload-{company-slug}.json`.
+Write payload to `/tmp/proposal-payload-{company-slug}.json`.
 
 Run:
 ```bash
-node generate-cover-letter.mjs --payload /tmp/cover-payload-{company-slug}.json
+node generate-cover-letter.mjs --payload /tmp/proposal-payload-{company-slug}.json
 ```
 
 Report the output path and file size.
@@ -324,7 +324,7 @@ After the PDF is confirmed, add a brief note:
 
 ## Slug mode specifics
 
-When invoked as `/career-ops cover {slug}`:
+When invoked as `/gig-ops cover {slug}`:
 
 1. Find the matching report in `reports/` by slug
 2. Extract the `## Cover Letter Draft` section — use it as a pre-populated starting point for the draft

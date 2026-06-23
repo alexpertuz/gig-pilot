@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * gemini-eval.mjs — Gemini-powered Job Offer Evaluator for career-ops
+ * gemini-eval.mjs — Gemini-powered Job Offer Evaluator for gig-ops
  *
  * A free-tier alternative to the Claude-based pipeline.
- * Reads evaluation logic from modes/oferta.md + modes/_shared.md,
+ * Reads evaluation logic from modes/gig.md + modes/_shared.md,
  * reads the user's resume from cv.md, and evaluates a Job Description
  * passed as a command-line argument.
  *
@@ -55,7 +55,7 @@ const PATHS = {
   shared:      join(ROOT, 'modes', '_shared.md'),
   oferta:      join(ROOT, 'modes', 'oferta.md'),
   // Canonical skill path referenced in Issue #344
-  evaluate:    join(ROOT, '.claude', 'skills', 'career-ops', 'SKILL.md'),
+  evaluate:    join(ROOT, '.claude', 'skills', 'gig-ops', 'SKILL.md'),
   cv:          join(ROOT, 'cv.md'),
   profile:     join(ROOT, 'modes', '_profile.md'),
   profileYml:  join(ROOT, 'config', 'profile.yml'),
@@ -72,7 +72,7 @@ const args = process.argv.slice(2);
 if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
   console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║           career-ops — Gemini Evaluator (free-tier)             ║
+║           gig-ops — Gemini Evaluator (free-tier)             ║
 ╚══════════════════════════════════════════════════════════════════╝
 
   Evaluate a job offer using Google Gemini instead of Claude.
@@ -200,7 +200,7 @@ function validateEvaluationShape(text) {
   }
 
   if (issues.length > 0) {
-    throw new Error(`Gemini returned an invalid career-ops report: ${issues.join('; ')}`);
+    throw new Error(`Gemini returned an invalid gig-ops report: ${issues.join('; ')}`);
   }
 }
 
@@ -237,7 +237,7 @@ if (!readdirSync) {
 console.log('\n📂  Loading context files...');
 
 const sharedContext  = readFile(PATHS.shared,      'modes/_shared.md');
-const ofertaLogic    = readFile(PATHS.oferta,      'modes/oferta.md');
+const ofertaLogic    = readFile(PATHS.oferta,      'modes/gig.md');
 const cvContent      = readFile(PATHS.cv,          'cv.md');
 const profileContent = readFile(PATHS.profile,     'modes/_profile.md');
 const profileYml     = readFile(PATHS.profileYml,  'config/profile.yml');
@@ -245,7 +245,7 @@ const profileYml     = readFile(PATHS.profileYml,  'config/profile.yml');
 // ---------------------------------------------------------------------------
 // Build the system prompt (mirrors the Claude skill router logic)
 // ---------------------------------------------------------------------------
-const systemPrompt = `You are career-ops, an AI-powered job search assistant.
+const systemPrompt = `You are gig-ops, an AI-powered job search assistant.
 You evaluate job offers against the user's CV using a structured A-G scoring system.
 
 Your evaluation methodology is defined below. Follow it exactly.
@@ -436,9 +436,9 @@ ${evaluationText.replace(/---SCORE_SUMMARY---[\s\S]*?---END_SUMMARY---/, '').tri
         stdio: ['ignore', 'pipe', 'pipe'],
       });
       if (mergeOutput.trim()) console.log(mergeOutput.trim());
-      console.log('📊  Tracker merged into data/applications.md.');
+      console.log('📊  Tracker merged into data/leads.md.');
     } catch (err) {
-      console.warn(`⚠️   Report saved, but could not merge tracker addition into data/applications.md: ${err.message}`);
+      console.warn(`⚠️   Report saved, but could not merge tracker addition into data/leads.md: ${err.message}`);
       process.exitCode = 1;
     }
   }

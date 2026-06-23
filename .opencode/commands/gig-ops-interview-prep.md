@@ -8,8 +8,8 @@ Run full interview prep for the following company and role:
 
 $ARGUMENTS
 
-Load the career-ops skill:
+Load the gig-ops skill:
 
 ```javascript
-skill({ name: "career-ops" })
+skill({ name: "gig-ops" })
 ```

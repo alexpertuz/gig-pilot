@@ -20,7 +20,7 @@ Agent(
 
 ## Configuration
 
-Read `portals.yml` which contains:
+Read `sources.yml` which contains:
 - `search_queries`: List of WebSearch queries with `site:` filters per portal (broad discovery)
 - `tracked_companies`: Specific companies with `careers_url` for direct navigation
 - `tracked_companies[].parser`: Optional local parser for SSR pages or stable HTML
@@ -30,7 +30,7 @@ Read `portals.yml` which contains:
 
 ### Level 0 — Local Parser (CHEAPEST)
 
-**For each company in `tracked_companies` with a configured `parser`:** execute the local parser defined in `portals.yml`. This level is ideal when the careers page uses SSR or stable HTML and there is already a local JavaScript, Python, or other runtime script that extracts jobs without agent assistance.
+**For each company in `tracked_companies` with a configured `parser`:** execute the local parser defined in `sources.yml`. This level is ideal when the careers page uses SSR or stable HTML and there is already a local JavaScript, Python, or other runtime script that extracts jobs without agent assistance.
 
 Recommended Contract:
 
@@ -113,7 +113,7 @@ During the agent's scan, keep the **`local_parser_ok`** set in memory. This set 
 - It detects new offers instantly
 - It does not depend on Google indexing
 
-**Every company MUST have a `careers_url` in portals.yml.** If it does not, search for it once, save it, and use it in future scans.
+**Every company MUST have a `careers_url` in sources.yml.** If it does not, search for it once, save it, and use it in future scans.
 
 ### Level 2 — ATS APIs / Feeds (COMPLEMENTARY)
 
@@ -149,9 +149,9 @@ Levels are additive — they are executed in order, and results are merged and d
 
 ## Workflow
 
-1. **Read Configuration**: `portals.yml`
+1. **Read Configuration**: `sources.yml`
 2. **Read History**: `data/scan-history.tsv` → already seen URLs
-3. **Read Dedup Sources**: `data/applications.md` + `data/pipeline.md`
+3. **Read Dedup Sources**: `data/leads.md` + `data/pipeline.md`
 
 3.5. **Level 0 — Local Parser** (`scan.mjs`, zero-token):
    Initialize `local_parser_ok = []`.
@@ -198,12 +198,12 @@ Levels are additive — they are executed in order, and results are merged and d
    c. **Skip** the result if the normalized `company` matches any name in `local_parser_ok`.
    d. Accumulate the rest in the candidates list (deduplicated against Levels 0+1+2).
 
-6. **Filter by Title** using `title_filter` from `portals.yml`:
+6. **Filter by Title** using `title_filter` from `sources.yml`:
    - At least 1 keyword from `positive` must appear in the title (case-insensitive).
    - 0 keywords from `negative` must appear.
    - `seniority_boost` keywords give priority but are not mandatory.
 
-6b. **Filter by Location (Optional)** using `location_filter` from `portals.yml`:
+6b. **Filter by Location (Optional)** using `location_filter` from `sources.yml`:
    - If the `location_filter` block is absent, all locations pass (default behavior).
    - Empty location on a posting → passes (do not penalize missing data).
    - Any keyword from `block` present → reject (precedes allow).
@@ -284,7 +284,7 @@ New added to pipeline.md: N
   + {company} | {title} | {query_name}
   ...
 
-→ Run /career-ops pipeline to evaluate the new offers.
+→ Run /gig-ops pipeline to evaluate the new offers.
 ```
 
 ## Managing careers_url
@@ -323,14 +323,14 @@ Fallback: if you only have the direct ATS URL, navigate first to the company's w
 1. Attempt the pattern of its known platform.
 2. If it fails, do a quick WebSearch: `"{company}" careers jobs`.
 3. Navigate with Playwright to confirm it works.
-4. **Save the found URL in portals.yml** for future scans.
+4. **Save the found URL in sources.yml** for future scans.
 
 **If `careers_url` returns 404 or redirect:**
 1. Note it in the output summary.
 2. Attempt `scan_query` as a fallback.
 3. Mark it for manual update.
 
-## Maintenance of portals.yml
+## Maintenance of sources.yml
 
 - **ALWAYS save `careers_url`** when adding a new company.
 - Add new queries as interesting portals or roles are discovered.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * validate-portals.mjs — schema/shape validator for portals.yml.
+ * validate-portals.mjs — schema/shape validator for sources.yml.
  *
  * Usage:
  *   node validate-portals.mjs
@@ -17,7 +17,7 @@ import yaml from 'js-yaml';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PROVIDERS_DIR = join(ROOT, 'providers');
-const DEFAULT_PORTALS_PATH = process.env.CAREER_OPS_PORTALS || 'portals.yml';
+const DEFAULT_PORTALS_PATH = process.env.GIG_OPS_SOURCES || 'sources.yml';
 
 function add(list, path, message) {
   list.push({ path, message });
@@ -199,7 +199,7 @@ async function validateFile(filePath) {
 }
 
 async function runSelfTest() {
-  const tmp = mkdtempSync(join(tmpdir(), 'career-ops-validate-portals-self-test-'));
+  const tmp = mkdtempSync(join(tmpdir(), 'gig-ops-validate-portals-self-test-'));
   try {
     const file = join(tmp, 'bad.yml');
     writeFileSync(file, `
@@ -230,7 +230,7 @@ async function main() {
   const fileFlag = args.indexOf('--file');
   const filePath = resolve(fileFlag === -1 ? DEFAULT_PORTALS_PATH : args[fileFlag + 1] || '');
   if (!filePath) {
-    console.error('Usage: node validate-portals.mjs [--file portals.yml] [--self-test]');
+    console.error('Usage: node validate-portals.mjs [--file sources.yml] [--self-test]');
     process.exit(1);
   }
 

@@ -157,7 +157,7 @@ Analyze the job posting for signals that indicate whether this is a real, active
 
 ## Cover Letter Draft (auto-generated after Block G)
 
-After saving the report and recording in the tracker, append a cover letter draft to the report file under `## Cover Letter Draft`. This is a starting point — not the final letter. The user completes it via `/career-ops cover {slug}`.
+After saving the report and recording in the tracker, append a cover letter draft to the report file under `## Cover Letter Draft`. This is a starting point — not the final letter. The user completes it via `/gig-ops cover {slug}`.
 
 **How to generate the draft:**
 
@@ -173,7 +173,7 @@ After saving the report and recording in the tracker, append a cover letter draf
 ```markdown
 ## Cover Letter Draft
 
-> Draft generated at evaluation time. Complete via `/career-ops cover {slug}` to fill in angles, confirm research, and generate the PDF.
+> Draft generated at evaluation time. Complete via `/gig-ops cover {slug}` to fill in angles, confirm research, and generate the PDF.
 > Gaps flagged below — address them during the cover flow.
 
 ---
@@ -205,7 +205,7 @@ I am happy to discuss further at your convenience.
 {8-10 exact phrases from the JD}
 
 ---
-*Run `/career-ops cover {slug}` to complete angles, confirm company research, and generate the PDF.*
+*Run `/gig-ops cover {slug}` to complete angles, confirm company research, and generate the PDF.*
 ```
 
 Apply all language rules from `_shared.md` Professional Writing section to the draft content. No em dashes, no buzzwords, active voice, concrete claims only.
@@ -270,7 +270,7 @@ Save full evaluation in `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 
 ### 2. Record in tracker
 
-**ALWAYS** record in `data/applications.md`:
+**ALWAYS** record in `data/leads.md`:
 - Next sequential number
 - Current date
 - Company

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * verify-portals.mjs — ATS slug validator for portals.yml.
+ * verify-portals.mjs — ATS slug validator for sources.yml.
  *
- * When a company is added to portals.yml, its ATS slug (the path segment in
+ * When a company is added to sources.yml, its ATS slug (the path segment in
  * `careers_url`, e.g. `jobs.lever.co/<slug>`) is easy to guess wrong — and a
  * wrong slug 404s silently on every future scan, so the company never appears
  * in results and the mistake is invisible. This script probes the public
@@ -15,7 +15,7 @@
  * unresolved (404/wrong) slug so a quiet board isn't mistaken for a typo.
  *
  * Usage:
- *   node verify-portals.mjs                 # sweep tracked_companies in portals.yml
+ *   node verify-portals.mjs                 # sweep tracked_companies in sources.yml
  *   node verify-portals.mjs --add cursor    # probe slug variants for one name
  *   node verify-portals.mjs --strict        # exit non-zero if any slug is unresolved
  *   node verify-portals.mjs --file <path>   # use a specific portals file
@@ -32,7 +32,7 @@ import yaml from 'js-yaml';
 
 import { fetchJson as defaultFetchJson } from './providers/_http.mjs';
 
-const DEFAULT_PORTALS_PATH = process.env.CAREER_OPS_PORTALS || 'portals.yml';
+const DEFAULT_PORTALS_PATH = process.env.GIG_OPS_SOURCES || 'sources.yml';
 
 // How to turn a slug into a probe URL, and where the job list lives in the
 // response, for each supported ATS. Greenhouse/Ashby wrap jobs in `{ jobs }`;
@@ -68,7 +68,7 @@ const ATS_URL_PATTERNS = [
 /**
  * Identify the ATS and slug embedded in a careers_url or api URL.
  *
- * @param {string} url - A `careers_url` or `api` value from portals.yml.
+ * @param {string} url - A `careers_url` or `api` value from sources.yml.
  * @returns {{ats: string, slug: string}|null} Match, or null for non-ATS URLs
  *   (branded careers pages, Workday, job boards, etc.) which this tool skips.
  */
@@ -163,7 +163,7 @@ export async function verifyCompanies(companies, { fetchJson = defaultFetchJson 
 /**
  * Read a portals file and verify its tracked companies' slugs.
  *
- * @param {string} filePath - Path to a portals.yml.
+ * @param {string} filePath - Path to a sources.yml.
  * @param {{fetchJson?: Function}} [deps]
  * @returns {Promise<{found: boolean, results: Array<object>}>} found=false when
  *   the file is absent (a graceful no-op for fresh setups / CI).
@@ -231,7 +231,7 @@ async function main() {
 
   const { found, results } = await verifyPortalsFile(filePath, { fetchJson });
   if (!found) {
-    // Graceful no-op: fresh setups (and CI, which ships no portals.yml) have
+    // Graceful no-op: fresh setups (and CI, which ships no sources.yml) have
     // nothing to verify. Not an error.
     console.log(`verify-portals: no portals file at ${filePath} — nothing to verify (run onboarding first).`);
     return;

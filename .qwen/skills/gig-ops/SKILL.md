@@ -1,14 +1,14 @@
 ---
-name: career-ops
+name: gig-ops
 description: AI job search command center -- evaluate offers, generate CVs, scan portals, track applications
 arguments: mode
 user_invocable: true
 user-invocable: true
-argument-hint: "[scan | deep | pdf | latex | cover | oferta | ofertas | apply | batch | tracker | pipeline | contacto | training | project | interview-prep | interview | patterns | followup | update]"
+argument-hint: "[scan | deep | pdf | latex | cover | gig | gigs | apply | batch | tracker | pipeline | contacto | training | project | interview-prep | interview | patterns | followup | update]"
 license: MIT
 ---
 
-# career-ops -- Router
+# gig-ops -- Router
 
 ## Mode Routing
 
@@ -18,8 +18,8 @@ Determine the mode from `$mode`:
 |-------|------|
 | (empty / no args) | `discovery` -- Show command menu |
 | JD text or URL (no sub-command) | **`auto-pipeline`** |
-| `oferta` | `oferta` |
-| `ofertas` | `ofertas` |
+| `gig` | `gig` |
+| `gigs` | `gigs` |
 | `contacto` | `contacto` |
 | `deep` | `deep` |
 | `interview-prep` | `interview-prep` |
@@ -49,31 +49,31 @@ If `$mode` is not a sub-command AND doesn't look like a JD, show discovery.
 Show this menu:
 
 ```
-career-ops -- Command Center
+gig-ops -- Command Center
 
 Available commands:
-  /career-ops {JD}      → AUTO-PIPELINE: evaluate + report + PDF + tracker (paste text or URL)
-  /career-ops pipeline  → Process pending URLs from inbox (data/pipeline.md)
-  /career-ops oferta    → Evaluation only A-F (no auto PDF)
-  /career-ops ofertas   → Compare and rank multiple offers
-  /career-ops contacto  → LinkedIn power move: find contacts + draft message
-  /career-ops deep      → Deep research prompt about company
-  /career-ops interview-prep → Generate company-specific interview prep doc
-  /career-ops interview    → Interactive profile/CV onboarding interview
-  /career-ops pdf       → PDF only, ATS-optimized CV
-  /career-ops latex     → Export CV as LaTeX/Overleaf .tex
-  /career-ops cover     → Cover letter: standalone JD paste or /career-ops cover {slug}
-  /career-ops training  → Evaluate course/cert against North Star
-  /career-ops project   → Evaluate portfolio project idea
-  /career-ops tracker   → Application status overview
-  /career-ops apply     → Live application assistant (reads form + generates answers)
-  /career-ops scan      → Scan portals and discover new offers
-  /career-ops batch     → Batch processing with parallel workers
-  /career-ops patterns  → Analyze rejection patterns and improve targeting
-  /career-ops followup  → Follow-up cadence tracker: flag overdue, generate drafts
-  /career-ops update    → Update career-ops system files with diff preview + compat check
+  /gig-ops {JD}      → AUTO-PIPELINE: evaluate + report + PDF + tracker (paste text or URL)
+  /gig-ops pipeline  → Process pending URLs from inbox (data/pipeline.md)
+  /gig-ops gig    → Evaluation only A-F (no auto PDF)
+  /gig-ops gigs   → Compare and rank multiple offers
+  /gig-ops contacto  → LinkedIn power move: find contacts + draft message
+  /gig-ops deep      → Deep research prompt about company
+  /gig-ops interview-prep → Generate company-specific interview prep doc
+  /gig-ops interview    → Interactive profile/CV onboarding interview
+  /gig-ops pdf       → PDF only, ATS-optimized CV
+  /gig-ops latex     → Export CV as LaTeX/Overleaf .tex
+  /gig-ops cover     → Cover letter: standalone JD paste or /gig-ops cover {slug}
+  /gig-ops training  → Evaluate course/cert against North Star
+  /gig-ops project   → Evaluate portfolio project idea
+  /gig-ops tracker   → Application status overview
+  /gig-ops apply     → Live application assistant (reads form + generates answers)
+  /gig-ops scan      → Scan portals and discover new offers
+  /gig-ops batch     → Batch processing with parallel workers
+  /gig-ops patterns  → Analyze rejection patterns and improve targeting
+  /gig-ops followup  → Follow-up cadence tracker: flag overdue, generate drafts
+  /gig-ops update    → Update gig-ops system files with diff preview + compat check
 
-Inbox: add URLs to data/pipeline.md → /career-ops pipeline
+Inbox: add URLs to data/pipeline.md → /gig-ops pipeline
 Or paste a JD directly to run the full pipeline.
 ```
 
@@ -86,7 +86,7 @@ After determining the mode, load the necessary files before executing:
 ### Modes that require `_shared.md` + their mode file:
 Read `modes/_shared.md` + `modes/{mode}.md`
 
-Applies to: `auto-pipeline`, `oferta`, `ofertas`, `pdf`, `contacto`, `apply`, `pipeline`, `scan`, `batch`
+Applies to: `auto-pipeline`, `gig`, `gigs`, `pdf`, `contacto`, `apply`, `pipeline`, `scan`, `batch`
 
 ### Standalone modes (only their mode file):
 Read `modes/{mode}.md`
@@ -100,7 +100,7 @@ For `scan`, `apply` (with Playwright), and `pipeline` (3+ URLs): launch as Agent
 Agent(
   subagent_type="general-purpose",
   prompt="[content of modes/_shared.md]\n\n[content of modes/{mode}.md]\n\n[invocation-specific data]",
-  description="career-ops {mode}"
+  description="gig-ops {mode}"
 )
 ```
 
