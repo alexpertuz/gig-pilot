@@ -1,256 +1,187 @@
-# System Context -- gig-ops
+# gig-ops Scoring System
 
-<!-- ============================================================
-     THIS FILE IS AUTO-UPDATABLE. Don't put personal data here.
-     
-     Your customizations go in modes/_profile.md (never auto-updated).
-     This file contains system rules, scoring logic, and tool config
-     that improve with each gig-ops release.
-     ============================================================ -->
+<!-- Imported by modes/gig.md and modes/auto-pipeline.md. Do not invoke directly. -->
 
-## Sources of Truth
+## Overview
 
-| File | Path | When |
-|------|------|------|
-| cv.md | `cv.md` (project root) | ALWAYS |
-| article-digest.md | `article-digest.md` (if exists) | ALWAYS (detailed proof points) |
-| profile.yml | `config/profile.yml` | ALWAYS (candidate identity and targets) |
-| _profile.md | `modes/_profile.md` | ALWAYS (user archetypes, narrative, negotiation) |
-| writing-samples/ | `writing-samples/` | When generating candidate-facing text — check `_profile.md` for cached `## Writing Style` first; only scan files if absent |
-| voice-dna.md | `voice-dna.md` (project root, if exists) | When generating candidate-facing text. Anti-AI-slop guardrail + voice. See Voice DNA precedence below. |
+Every gig evaluation produces a score from **1–5** across 6 blocks (A–F).
 
-**RULE: NEVER hardcode metrics from proof points.** Read them from cv.md + article-digest.md at evaluation time.
-**RULE: For article/project metrics, article-digest.md takes precedence over cv.md.**
-**RULE: Read _profile.md AFTER this file. User customizations in _profile.md override defaults here.**
+| Block | Name | Weight | What it measures |
+|-------|------|--------|-----------------|
+| A | Archetype Fit | 25% | Does this match your services? |
+| B | Budget Realism | 25% | Is compensation fair and real? |
+| C | Scope Clarity | 20% | Is the deliverable well-defined? |
+| D | Poster Legitimacy | 15% | Is the poster credible? |
+| E | Channel & Terms | 10% | Is the engagement channel sane? |
+| F | Timing & Urgency | 5% | Is the timeline realistic? |
+
+Final score = weighted average. Round to one decimal place.
 
 ---
 
-## Scoring System
+## Block A — Archetype Fit (25%)
 
-The evaluation uses 6 blocks (A-F) with a global score of 1-5:
+Read `config/profile.yml` → `archetypes`.
 
-| Dimension | What it measures |
-|-----------|-----------------|
-| Match con CV | Skills, experience, proof points alignment |
-| North Star alignment | How well the role fits the user's target archetypes (from _profile.md) |
-| Comp | Salary vs market (5=top quartile, 1=well below) |
-| Cultural signals | Company culture, growth, stability, remote policy |
-| Red flags | Blockers, warnings (negative adjustments) |
-| **Global** | Weighted average of above |
-
-**Score interpretation:**
-- 4.5+ → Strong match, recommend applying immediately
-- 4.0-4.4 → Good match, worth applying
-- 3.5-3.9 → Decent but not ideal, apply only if specific reason
-- Below 3.5 → Recommend against applying (see Ethical Use in AGENTS.md)
-
-## Posting Legitimacy (Block G)
-
-Block G assesses whether a posting is likely a real, active opening. It does NOT affect the 1-5 global score -- it is a separate qualitative assessment.
-
-**Three tiers:**
-- **High Confidence** -- Real, active opening (most signals positive)
-- **Proceed with Caution** -- Mixed signals, worth noting (some concerns)
-- **Suspicious** -- Multiple ghost indicators, user should investigate first
-
-**Key signals (weighted by reliability):**
-
-| Signal | Source | Reliability | Notes |
-|--------|--------|-------------|-------|
-| Posting age | Page snapshot | High | Under 30d=good, 30-60d=mixed, 60d+=concerning (adjusted for role type) |
-| Apply button active | Page snapshot | High | Direct observable fact |
-| Tech specificity in JD | JD text | Medium | Generic JDs correlate with ghost postings but also with poor writing |
-| Requirements realism | JD text | Medium | Contradictions are a strong signal, vagueness is weaker |
-| Recent layoff news | WebSearch | Medium | Must consider department, timing, and company size |
-| Reposting pattern | scan-history.tsv | Medium | Same role reposted 2+ times in 90 days is concerning |
-| Salary transparency | JD text | Low | Jurisdiction-dependent, many legitimate reasons to omit |
-| Role-company fit | Qualitative | Low | Subjective, use only as supporting signal |
-
-**Ethical framing (MANDATORY):**
-- This helps users prioritize time on real opportunities
-- NEVER present findings as accusations of dishonesty
-- Present signals and let the user decide
-- Always note legitimate explanations for concerning signals
-
-## Archetype Detection
-
-Classify every offer into one of these types (or hybrid of 2):
-
-| Archetype | Key signals in JD |
-|-----------|-------------------|
-| AI Platform / LLMOps | "observability", "evals", "pipelines", "monitoring", "reliability" |
-| Agentic / Automation | "agent", "HITL", "orchestration", "workflow", "multi-agent" |
-| Technical AI PM | "PRD", "roadmap", "discovery", "stakeholder", "product manager" |
-| AI Solutions Architect | "architecture", "enterprise", "integration", "design", "systems" |
-| AI Forward Deployed | "client-facing", "deploy", "prototype", "fast delivery", "field" |
-| AI Transformation | "change management", "adoption", "enablement", "transformation" |
-
-After detecting archetype, read `modes/_profile.md` for the user's specific framing and proof points for that archetype.
-
-## Global Rules
-
-### NEVER
-
-1. Invent experience or metrics
-2. Modify cv.md or portfolio files
-3. Submit applications on behalf of the candidate
-4. Share phone number in generated messages
-5. Recommend comp below market rate
-6. Generate a PDF without reading the JD first
-7. Use corporate-speak
-8. Ignore the tracker (every evaluated offer gets registered)
-
-### ALWAYS
-
-0. **Cover letter:** If the form allows it, ALWAYS include one. Same visual design as CV. JD quotes mapped to proof points. 1 page max.
-1. Read cv.md, _profile.md, and article-digest.md (if exists) before evaluating
-1b. **First evaluation of each session:** Run `node cv-sync-check.mjs`. If warnings, notify user.
-2. Detect the role archetype and adapt framing per _profile.md
-3. Cite exact lines from CV when matching
-4. Use WebSearch for comp and company data
-5. Register in tracker after evaluating
-6. Generate content in the language of the JD (EN default)
-7. Be direct and actionable -- no fluff
-8. Native tech English for generated text. Short sentences, action verbs, no passive voice.
-8b. Case study URLs in PDF Professional Summary (recruiter may only read this).
-9. **Tracker additions as TSV** -- NEVER edit applications.md directly. Write TSV in `batch/tracker-additions/`.
-10. **Include `**URL:**` in every report header.**
-
-### Tools
-
-| Tool | Use |
-|------|-----|
-| WebSearch | Comp research, trends, company culture, LinkedIn contacts, fallback for JDs |
-| WebFetch | Fallback for extracting JDs from static pages |
-| Playwright | Verify offers (browser_navigate + browser_snapshot). **NEVER 2+ agents with Playwright in parallel.** |
-| Read | cv.md, _profile.md, article-digest.md, cv-template.html |
-| Write | Temporary HTML for PDF, applications.md, reports .md |
-| Edit | Update tracker |
-| Canva MCP | Optional visual CV generation. Duplicate base design, edit text, export PDF. Requires `cv.canva_resume_design_id` in profile.yml. |
-| Bash | `node generate-pdf.mjs` |
-
-### Time-to-offer priority
-- Working demo + metrics > perfection
-- Apply sooner > learn more
-- 80/20 approach, timebox everything
+| Score | Criteria |
+|-------|----------|
+| 5 | Primary archetype exact match: stack, domain, level all align |
+| 4 | Primary archetype strong match: 1 minor gap (adjacent stack, slightly different level) |
+| 3 | Secondary archetype or stretch primary |
+| 2 | Adjacent archetype — can do it but wouldn't pick it |
+| 1 | Not a match — wrong domain or requires skills you don't have |
 
 ---
 
-## Voice DNA (writing guardrail)
+## Block B — Budget Realism (25%)
 
-If `voice-dna.md` exists in the project root, it is a writing guardrail for generated prose. It is user-layer and optional — never assume it exists, and skip this block silently if it doesn't. It layers **under** the user's personal style: it catches AI-slop and fills gaps, but it always defers to the user's own voice rules in `_profile.md` (see Precedence below).
+Read `config/profile.yml` → `rate_card`.
 
-**Two-tier scope (this is what keeps CVs accurate):**
+**Hard stops (auto-score 1, recommend DECLINE):**
+- "unpaid", "for your portfolio", "in exchange for exposure/testimonial"
+- "equity only" or "rev share only" with zero upfront
+- No mention of any compensation whatsoever
+- Budget below walk-away rate
 
-- **Tier 1 — anti-AI-slop guardrail** (voice-dna §3 Banned List, §4 Patterns to Avoid: banned words, dead phrases, no em-dashes, no negative parallelisms, formatting rules). These are HARD RULES. They apply to **all** generated text, including CV bullets and the Professional Summary.
-- **Tier 2 — conversational voice** (voice-dna §1-2: contractions, And/But sentence openers, hedging like "I think"/"maybe", parenthetical asides, direct "I"/"you"). Apply **only** to conversational candidate-facing prose: cover letters, LinkedIn outreach, follow-up emails. **Do NOT apply Tier 2 to CV/ATS text** (PDF bullets, Professional Summary) — those keep the formal, keyword-dense register in the ATS Rules below.
-
-**Accuracy always wins over style.** Facts from `cv.md` and `article-digest.md` are never overridden by voice-dna. Never drop, soften, or hedge a real metric to improve rhythm. Never invent detail to sound more human. Voice-dna shapes wording; it never changes content.
-
-**Precedence with personal style (`_profile.md` always wins):** The user's `## Writing Style` in `_profile.md` is the authority on voice and tone. Where `voice-dna.md` and `_profile.md` conflict, `_profile.md` wins — voice-dna never overrides a rule the user set for themselves. Example: if the user's `_profile.md` style uses em-dashes, keep them, even though voice-dna discourages them. voice-dna's anti-AI-slop rules apply only where `_profile.md` is silent. (`voice-dna.md` is itself a user file, so a user who wants the strict guardrail to win can simply leave that preference out of `_profile.md`.)
+| Score | Criteria |
+|-------|----------|
+| 5 | Budget at or above target rate; payment model in `accepted_models` |
+| 4 | Budget 20% below target but above walk-away; or model is acceptable |
+| 3 | Budget at walk-away floor; or partially undisclosed ("negotiable" with signals it's fair) |
+| 2 | Budget vague or slightly below walk-away; may be negotiable |
+| 1 | Budget is a hard stop (see above) |
 
 ---
 
-## Writing Style Calibration
+## Block C — Scope Clarity (20%)
 
-**Check `_profile.md` first.** If a `## Writing Style` section exists there, use it directly — do not re-scan the writing-samples files. Re-scanning is only needed when new samples are added or the user explicitly asks to recalibrate.
+| Score | Criteria |
+|-------|----------|
+| 5 | Specific deliverable, defined acceptance criteria, existing design/spec, clear end date |
+| 4 | Clear deliverable with minor gaps (e.g. design done, scope mostly defined) |
+| 3 | Deliverable identifiable but missing key details (no design, unclear integrations) |
+| 2 | Vague description; catchphrases like "simple app", "just need X", "ASAP" without context |
+| 1 | Fully vague ("build me a startup", "co-founder wanted", "help with everything") |
 
-**When to apply:** Before generating any text the user will send or publish — cover letters, LinkedIn outreach, application form answers, follow-up emails, executive summaries, profile blurbs. Does NOT apply to internal evaluation reports (A–F blocks, scores, analysis).
+**Scope creep signals (each drops score by 0.5, minimum 1):**
+- "MVP" without defined feature list
+- "ASAP" or "urgent" without justification
+- "simple" or "quick" (almost always isn't)
+- "and also..." (scope expansion mid-description)
 
-**If no cached style in `_profile.md`:** Read all files in `writing-samples/`, **skipping any file named `README.md`**. If no user-provided samples are found, skip style calibration and gently note — once, without pressure — that adding a writing sample (e.g. a past cover letter, a LinkedIn About section, any professional writing) would help tailor outputs to their voice. If samples exist, extract the markers below and write the result to `_profile.md` under `## Writing Style` so future sessions skip this step.
+---
 
-### What to extract
+## Block D — Poster Legitimacy (15%)
 
-**Tone & register**
-- Formal vs. conversational
-- Confident vs. hedging (watch for qualifiers like "I think", "perhaps", "somewhat")
-- Warm vs. transactional
-- Degree of self-promotion — does the user undersell, match, or lead with achievements?
+For Reddit sources: check post history, account age, karma signals.
+For other sources: check company/profile existence, post history, contact method clarity.
 
-**Sentence structure**
-- Average sentence length — short and punchy or long and layered?
-- Use of fragments for emphasis
-- Clause nesting and complexity
-- How sentences open — subject-first, action-first, context-first?
+| Score | Criteria |
+|-------|----------|
+| 5 | Verified account/company, clear contact, post history shows paid work, portfolio/website linked |
+| 4 | Real account, reasonable history, no red flags |
+| 3 | New or low-activity account but post is genuine; or no history available (non-Reddit source) |
+| 2 | Account < 30 days old OR zero relevant post history; or contact method unclear |
+| 1 | Strong red flags: no post history + new account + vague contact; or post reads like a template dump |
 
-**Punctuation habits**
-- Em dashes, en dashes, or parentheses for asides?
-- Oxford comma or not?
-- Ellipses — used or avoided?
-- Exclamation marks — never, sparingly, or freely?
-- Semicolons vs. full stops to join related ideas
+**Auto-flag red flags (mark in report, push score toward 1):**
+- Account created < 1 week ago AND first post is a hiring request
+- Post is copy-paste of a known template
+- Contact is only "DM me" with no other info
+- Previously removed posts visible in history
+- Requests "test task" or "trial period" for free before any agreement
 
-**Vocabulary**
-- Technical density — how much jargon per paragraph?
-- Preferred synonyms (e.g. "built" vs. "developed" vs. "engineered")
-- Words or phrases the user reaches for repeatedly — keep them
-- Words that never appear — don't introduce them
+---
 
-**Paragraph and structure patterns**
-- Paragraph length — one-liners or developed blocks?
-- Bullet-heavy or prose-heavy?
-- How ideas are sequenced — problem → solution, result-first, chronological?
-- Use of headers within longer pieces
+## Block E — Channel & Terms (10%)
 
-**Voice signatures**
-- First-person patterns — "I led", "we built", "our team"?
-- Active vs. passive ratio
-- Habitual openers and closers
-- Rhetorical moves — does the user ask questions, use contrast, tell micro-stories?
+| Score | Criteria |
+|-------|----------|
+| 5 | Clear channel (email or DM with contact info), reasonable IP/contract terms indicated |
+| 4 | DM-only but reasonable (normal for Reddit gigs) |
+| 3 | Apply via external form; no contract/IP terms but not concerning for scope |
+| 2 | Ambiguous channel; or signs of IP overreach ("we own everything you create, including prior work") |
+| 1 | Red flags: requires NDA before basic scope info; requires extensive unpaid spec work; abusive IP terms |
 
-### Rules
+---
 
-- **Only extract what is demonstrably present.** Do not infer style from a single data point.
-- **Idiosyncratic choices are intentional.** Unconventional punctuation or phrasing is the user's voice — preserve it, do not correct it.
-- **If samples conflict**, weight the most recent or most similar-context file.
-- **If samples are sparse**, apply what can be reliably extracted and fall back to defaults for the rest.
-- **Style calibration applies to tone and structure only.** Do not import content, claims, or metrics from samples into CVs, reports, or evaluations.
-- **No verbatim copying or personal identifiers.** Store only abstract style descriptors (tone, structure, vocabulary preferences). Do not quote user sentences verbatim and do not retain personal identifiers (names, emails, phone numbers) from writing samples. "Preserve idiosyncratic choices" applies to stylistic traits only.
+## Block F — Timing & Urgency (5%)
 
-### Persisting the extracted style
+| Score | Criteria |
+|-------|----------|
+| 5 | Reasonable timeline with buffer; async-friendly |
+| 4 | Tight but achievable timeline |
+| 3 | Timeline vague ("as soon as possible") |
+| 2 | Unrealistic timeline for described scope |
+| 1 | "Need by tomorrow" / weekend emergency / implies 24/7 availability |
 
-After scanning (excluding any `README.md` files), write to `modes/_profile.md` only if at least one user-provided sample was found: find the existing `## Writing Style` section and replace the entire block up to the next `##` heading (or EOF) with the new content. If no `## Writing Style` section exists, append it. This ensures there is always exactly one canonical section. If no samples were found after filtering, do not write or modify the section.
+---
 
-```markdown
-## Writing Style
+## Scoring thresholds
 
-_Extracted from writing-samples/ on {date}. Re-run if new samples are added._
+| Score | Decision |
+|-------|----------|
+| ≥ 4.0 | **GO** — pursue, generate proposal |
+| 3.0 – 3.9 | **NEGOTIATE** — pursue only with specific conditions met |
+| < 3.0 | **DECLINE** — not worth pursuing |
 
-**Tone:** {e.g. conversational, confident, no hedging qualifiers}
-**Sentence length:** {e.g. short and punchy, avg 12 words}
-**Openings:** {e.g. action-first, subject-first}
-**Punctuation:** {e.g. em dashes for asides, Oxford comma, no ellipses}
-**Vocabulary:** {e.g. prefers "built"/"ran"/"cut" over "developed"/"led"/"reduced"}
-**Structure:** {e.g. prose-heavy, result-first sequencing}
-**Voice:** {e.g. "I led", active voice dominant, no rhetorical questions}
-**Avoid:** {words or patterns absent from samples}
+A score of **1 on Block B** is always a hard DECLINE regardless of other scores.
+
+---
+
+## Report format
+
+Reports are written to `reports/{num}-{slug}-{date}.md`.
+Number is reserved via `node reserve-report-num.mjs`.
+
+```
+# [{num}] {Gig Title} — {Poster} ({source}) [{date}]
+
+**Score: {score}/5 | {GO / NEGOTIATE / DECLINE}**
+
+## Block Scores
+| Block | Score | Notes |
+|-------|-------|-------|
+| A — Fit | X.X | ... |
+| B — Budget | X.X | ... |
+| C — Scope | X.X | ... |
+| D — Legitimacy | X.X | ... |
+| E — Channel | X.X | ... |
+| F — Timing | X.X | ... |
+| **Total** | **X.X** | |
+
+## Summary
+[2–4 sentences: what the gig is, who it's for, why the score]
+
+## Red Flags
+[Bullet list of any hard-stop items or yellow flags — omit section if none]
+
+## GO / NEGOTIATE / DECLINE Rationale
+[One paragraph on the decision. If NEGOTIATE: what specific conditions would flip it to GO.]
+
+## Suggested Rate
+[Your estimated rate for this gig based on scope + rate card]
+
+## Proposal Angle
+[One sentence: what proof point or differentiator to lead with in /proposal]
 ```
 
 ---
 
-## Professional Writing & ATS Compatibility
+## Tools available during evaluation
 
-These rules apply to ALL generated text that ends up in candidate-facing documents: PDF summaries, bullets, cover letters, form answers, LinkedIn messages. They do NOT apply to internal evaluation reports.
+- `node tracker.mjs status` — show current leads count and pipeline state
+- `node reserve-report-num.mjs` — get next report number (call before writing)
+- `config/profile.yml` — your identity, services, rate card
+- `data/pipeline.md` — the URL inbox
 
-### Avoid cliché phrases
-_If `voice-dna.md` exists, its §3 Banned List is the canonical, fuller version of this list and takes precedence. The list below is the fallback for users without that file._
-- "passionate about" / "results-oriented" / "proven track record"
-- "leveraged" (use "used" or name the tool)
-- "spearheaded" (use "led" or "ran")
-- "facilitated" (use "ran" or "set up")
-- "synergies" / "robust" / "seamless" / "cutting-edge" / "innovative"
-- "in today's fast-paced world"
-- "demonstrated ability to" / "best practices" (name the practice)
+---
 
-### Unicode normalization for ATS
-`generate-pdf.mjs` automatically normalizes em-dashes, smart quotes, and zero-width characters to ASCII equivalents for maximum ATS compatibility. But avoid generating them in the first place.
+## Global rules
 
-### Vary sentence structure
-- Don't start every bullet with the same verb
-- Mix sentence lengths (short. Then longer with context. Short again.)
-- Don't always use "X, Y, and Z" — sometimes two items, sometimes four
-
-### Prefer specifics over abstractions
-- "Cut p95 latency from 2.1s to 380ms" beats "improved performance"
-- "Postgres + pgvector for retrieval over 12k docs" beats "designed scalable RAG architecture"
-- Name tools, projects, and customers when allowed
+1. **Never evaluate a gig without reading `config/profile.yml` first.** The entire scoring system is relative to your profile.
+2. **Block B score of 1 = hard DECLINE.** Write the report, explain why, do not generate a proposal.
+3. **Be specific in red flags.** Not "seems suspicious" — quote the exact phrase that triggered the flag.
+4. **Suggested rate must be a number.** Not "negotiable" — pick a number and justify it.
+5. **Do not skip blocks.** A missing block is an incomplete evaluation.
+6. **One report per gig.** If already evaluated (check `data/scan-history.tsv`), note the duplicate and link to the original.

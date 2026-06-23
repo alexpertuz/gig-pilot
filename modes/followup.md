@@ -1,175 +1,113 @@
-# Mode: followup -- Follow-up Cadence Tracker
+# Mode: /followup — Follow-up Cadence
 
-> **Read `voice-dna.md` (if present) and apply it to every generated email/LinkedIn draft.** This mode is standalone — it does NOT load `_shared.md`, so read `voice-dna.md` directly. Follow-up drafts are conversational, so apply the full guardrail: banned words/phrases/patterns, no em-dashes, no negative parallelisms (§3-4) AND conversational voice — contractions, varied rhythm, direct "I"/"you" (§1-2). Never drop or soften a real metric from `cv.md` for style.
+Track follow-up cadence for active leads. Flag overdue follow-ups and generate tailored follow-up DMs/emails.
 
-## Purpose
-
-Track follow-up cadence for active applications. Flag overdue follow-ups, extract contacts from notes, and generate tailored follow-up email/LinkedIn drafts using report context.
+> **Read `voice-dna.md` if present.** Apply it to every generated draft — conversational, no filler phrases.
 
 ## Inputs
 
-- `data/leads.md` — Application tracker
-- `data/follow-ups.md` — Follow-up history (created on first use)
-- `reports/` — Evaluation reports (for context in drafts)
-- `config/profile.yml` — User profile (name, identity)
-- `cv.md` — CV for proof points in drafts
+- `data/leads.md` — leads tracker
+- `data/follow-ups.md` — follow-up history (created on first use)
+- `reports/` — evaluation reports (for context in drafts)
+- `config/profile.yml` — your identity and services
 
-## Step 1 — Run Cadence Script
-
-Execute:
+## Step 1 — Run cadence script
 
 ```bash
 node followup-cadence.mjs
 ```
 
-Parse the JSON output. It contains:
+Parse the JSON output (per-lead: status, days since contacted, follow-up count, urgency, next follow-up date).
 
-| Key | Contents |
-|-----|----------|
-| `metadata` | Analysis date, total tracked, actionable count, overdue/urgent/cold/waiting counts |
-| `entries` | Per-application: company, role, status, days since application, follow-up count, urgency, next follow-up date, extracted contacts, report path |
-| `cadenceConfig` | Cadence rules (applied: 7 days, responded: 3 days, interview: 1 day) |
+If no actionable leads: "No active leads to follow up on. Evaluate some gigs with `/gig` and contact them first."
 
-If no actionable entries, tell the user:
-> "No active applications to follow up on. Apply to some roles first with `/gig-ops` and come back when they're aging."
+## Step 2 — Display dashboard
 
-## Step 2 — Display Dashboard
-
-Show a cadence dashboard sorted by urgency (urgent > overdue > waiting > cold):
+Show leads sorted by urgency (urgent > overdue > waiting > cold):
 
 ```
-Follow-up Cadence Dashboard — {date}
-{N} applications tracked, {N} actionable
+Follow-up Dashboard — {date}
+{N} leads tracked, {N} actionable
 
-| # | Company | Role | Status | Days | Follow-ups | Next | Urgency | Contact |
+| # | Gig | Poster | Status | Days | Follow-ups | Next | Urgency |
 ```
 
-Use visual indicators:
-- **URGENT** — respond within 24 hours (company replied)
-- **OVERDUE** — follow-up is past due
-- **waiting (X days)** — on track, follow-up scheduled
-- **COLD** — 2+ follow-ups sent, suggest closing
+Visual indicators:
+- **URGENT** — poster replied, respond within 24 hours
+- **OVERDUE** — follow-up date has passed
+- **waiting (X days)** — on track
+- **COLD** — 2+ follow-ups sent with no reply, suggest closing
 
-## Step 3 — Generate Follow-up Drafts
+## Step 3 — Generate drafts
 
-For each **overdue** or **urgent** entry only:
+For each **overdue** or **urgent** lead:
 
-1. Read the linked report (`reportPath` from JSON) for company context
-2. Read `cv.md` for proof points
-3. Read `config/profile.yml` for candidate name and identity
+1. Read linked report for gig context
+2. Read `config/profile.yml` for your services and proof points
 
-### Email Follow-up Framework (first follow-up, followupCount == 0)
+### DM follow-up (first follow-up, count == 0)
 
-Generate a 3-4 sentence email:
+2–3 sentences. Casual tone — this is Reddit DM.
 
-1. **Sentence 1:** Reference the specific role + when you applied. Be specific — mention the company name and role title.
-2. **Sentence 2:** One concrete value-add from the report's Block B match or a proof point from cv.md. Quantify if possible.
-3. **Sentence 3:** Soft ask + availability. Offer a specific time window ("this week" or "next Tuesday").
-4. **Sentence 4 (optional):** Brief mention of a relevant recent project or achievement.
+Structure:
+1. Reference the specific gig (not "I sent a message before")
+2. New angle or short value-add (proof point, question about scope)
+3. Soft CTA
 
-**Rules:**
-- Professional but warm, NOT desperate
-- **NEVER** use "just checking in", "just following up", "touching base", or "circling back"
-- Lead with value, not with the ask
-- Reference something specific to THAT company (from report Block A)
-- Keep under 150 words
-- Include a subject line
-- Use the candidate's name from `config/profile.yml`
+**NEVER use:**
+- "just checking in"
+- "just following up"
+- "touching base"
+- "circling back"
 
-**Example tone:**
-> Subject: Re: Senior PHP/Laravel Developer — IxDF
->
-> Hi [contact name or "team"],
->
-> I submitted my application for the Senior PHP/Laravel Developer role on April 7th. I wanted to share that my production Laravel app (Barbeiro.app — 120 models, 315 API endpoints, full test suite) closely mirrors the TDD-driven culture described in the posting.
->
-> I'd love to discuss how my 15 years of PHP experience and hands-on AI tooling workflow could contribute to IxDF's platform. Would any time this week work for a brief conversation?
->
-> Best,
-> [Name]
+**Example:**
+> Hey — sent you a DM about the React dashboard gig last week. Wanted to add: I've got a Figma-to-React workflow that cuts implementation time in half if you already have designs. Still interested?
 
-### LinkedIn Follow-up (if no email contact found)
+### Email follow-up
 
-Reuse the contacto framework: 3 sentences, 300 character max.
-- Hook specific to company → proof point → soft ask
-- Suggest the user run `/gig-ops contacto {company}` to find the right person first
+3–4 sentences. Include subject line.
 
-### Second Follow-up (followupCount == 1)
+### Second follow-up (count == 1)
 
-Shorter than first (2-3 sentences). Take a **new angle**:
-- Share a relevant insight, article, or project update
-- Don't repeat the first follow-up's content
-- Still reference the role specifically
+Shorter. New angle — don't repeat the first message.
 
-### Cold Application (followupCount >= 2)
+### Third+ follow-up (count >= 2)
 
-Do NOT generate another follow-up. Instead suggest:
-> "This application has had {N} follow-ups with no response. Consider:
-> - Updating status to `Discarded` if the role seems filled
-> - Trying a different contact via `/gig-ops contacto`
-> - Keeping in `Applied` status but deprioritizing"
+Do NOT generate another follow-up. Instead:
+> "This lead has had {N} follow-ups with no response. Consider marking it `lost` or trying a different contact method."
 
-## Step 4 — Present Drafts
+## Cadence rules
 
-For each draft, show:
+| Status | First follow-up | Subsequent | Max |
+|--------|----------------|------------|-----|
+| contacted | 3 days | Every 3 days | 2 total |
+| replied | Same day (respond ASAP) | Every 2 days | no limit |
+| negotiating | Same day | Every 1–2 days | no limit |
 
-```
-## Follow-up: {Company} — {Role} (#{num})
+DMs go cold faster than email — 3 days is the right window, not 7.
 
-**To:** {email or "No contact found — run `/gig-ops contacto` first"}
-**Subject:** {subject line}
-**Days since application:** {N}
-**Follow-ups sent:** {N}
-**Channel:** Email / LinkedIn
+## Step 4 — Record sent follow-ups
 
-{draft text}
+After the user confirms they sent a message, append to `data/follow-ups.md`:
+
+```markdown
+| # | Lead# | Date | Gig | Poster | Channel | Notes |
+|---|-------|------|-----|--------|---------|-------|
 ```
 
-## Step 5 — Record Follow-ups
+Only record follow-ups the user confirms were actually sent.
 
-After the user reviews and says they've sent a follow-up, record it:
+Update `data/leads.md` → `next_followup` column to the next scheduled date.
 
-1. If `data/follow-ups.md` doesn't exist, create it:
-   ```markdown
-   # Follow-up History
+## Step 5 — Summary
 
-   | # | App# | Date | Company | Role | Channel | Contact | Notes |
-   |---|------|------|---------|------|---------|---------|-------|
-   ```
+```
+Follow-up Dashboard ({date})
+- {N} leads tracked
+- {N} overdue — drafts above
+- {N} urgent — respond today
+- {N} waiting
+- {N} cold — consider closing
 
-2. Append a row with:
-   - `#` = next sequential number in the follow-ups table
-   - `App#` = application number from tracker
-   - `Date` = today's date
-   - `Company` = company name
-   - `Role` = role title
-   - `Channel` = Email / LinkedIn / Other
-   - `Contact` = who it was sent to
-   - `Notes` = brief note (e.g., "First follow-up, referenced Barbeiro.app")
-
-3. Optionally update the Notes column in `data/leads.md` with "Follow-up {N} sent {YYYY-MM-DD}"
-
-**IMPORTANT:** Only record follow-ups the user confirms they actually sent. Never record a draft as sent.
-
-## Step 6 — Summary
-
-After showing all drafts, summarize:
-
-> **Follow-up Dashboard** ({date})
-> - {N} applications being tracked
-> - {N} overdue — drafts generated above
-> - {N} urgent — respond today
-> - {N} waiting — next follow-up dates shown
-> - {N} cold — consider closing
->
-> Review the drafts above and tell me which ones you've sent so I can record them.
-
-## Cadence Rules Reference
-
-| Status | First follow-up | Subsequent | Max attempts |
-|--------|----------------|------------|-------------|
-| Applied | 7 days after application | Every 7 days | 2 (then mark cold) |
-| Responded | 1 day (urgent reply) | Every 3 days | No limit |
-| Interview | 1 day after (thank-you) | Every 3 days | No limit |
-
-These defaults can be overridden via `node followup-cadence.mjs --applied-days N`.
+Review the drafts and confirm which ones you've sent.
+```

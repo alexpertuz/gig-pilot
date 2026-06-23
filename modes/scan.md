@@ -1,6 +1,6 @@
 # Mode: scan — Portal Scanner (Job Discovery)
 
-Scans configured job portals, filters by title relevance, and adds new offers to the pipeline for subsequent evaluation.
+Scans configured gig sources, filters by title relevance, and adds new offers to the pipeline for subsequent evaluation.
 
 > **Note (v1.6+):** The default scanner (`scan.mjs` / `npm run scan`) is **zero-token** and uses structured sources: local parsers configured per company and public Greenhouse, Ashby, and Lever APIs. The levels with Playwright/WebSearch described below represent the **agent** workflow (executed by the AI agent), not what `scan.mjs` does. If a company does not have a local parser or a Greenhouse/Ashby/Lever API, `scan.mjs` will ignore it; in those cases, the agent must manually complete Level 1 (Playwright) or Level 3 (WebSearch).
 >
@@ -24,13 +24,13 @@ Read `sources.yml` which contains:
 - `search_queries`: List of WebSearch queries with `site:` filters per portal (broad discovery)
 - `tracked_companies`: Specific companies with `careers_url` for direct navigation
 - `tracked_companies[].parser`: Optional local parser for SSR pages or stable HTML
-- `title_filter`: Keywords (positive/negative/seniority_boost) for filtering job titles
+- `title_filter`: Keywords (positive/negative/seniority_boost) for filtering gig titles
 
 ## Discovery Strategy (4 Levels)
 
 ### Level 0 — Local Parser (CHEAPEST)
 
-**For each company in `tracked_companies` with a configured `parser`:** execute the local parser defined in `sources.yml`. This level is ideal when the careers page uses SSR or stable HTML and there is already a local JavaScript, Python, or other runtime script that extracts jobs without agent assistance.
+**For each company in `tracked_companies` with a configured `parser`:** execute the local parser defined in `sources.yml`. This level is ideal when the careers page uses SSR or stable HTML and there is already a local JavaScript, Python, or other runtime script that extracts gigs without agent assistance.
 
 Recommended Contract:
 
@@ -40,8 +40,8 @@ Recommended Contract:
   scan_method: local_parser
   parser:
     command: node
-    script: scripts/parsers/example-company-jobs.js
-    format: jobs-json-v1
+    script: scripts/parsers/example-company-gigs.js
+    format: gigs-json-v1
   enabled: true
 ```
 
@@ -53,16 +53,16 @@ Array format:
 
 ```json
 [
-  { "title": "Senior AI Engineer", "url": "https://example.com/jobs/123", "location": "Remote" }
+  { "title": "Senior AI Engineer", "url": "https://example.com/gigs/123", "location": "Remote" }
 ]
 ```
 
-Object format with `jobs`:
+Object format with `gigs`:
 
 ```json
 {
-  "jobs": [
-    { "title": "Senior AI Engineer", "url": "https://example.com/jobs/123", "location": "Remote" }
+  "gigs": [
+    { "title": "Senior AI Engineer", "url": "https://example.com/gigs/123", "location": "Remote" }
   ]
 }
 ```
@@ -72,7 +72,7 @@ Object format with `results`:
 ```json
 {
   "results": [
-    { "title": "Senior AI Engineer", "url": "https://example.com/jobs/123", "location": "Remote" }
+    { "title": "Senior AI Engineer", "url": "https://example.com/gigs/123", "location": "Remote" }
   ]
 }
 ```
@@ -88,7 +88,7 @@ The goal of `scan_method: local_parser` is to **reduce tokens**: prevent the LLM
 During the agent's scan, keep the **`local_parser_ok`** set in memory. This set contains the names of companies (`tracked_companies[].name`) for which Level 0 completed successfully:
 
 - `parser.command` + `parser.script` exist and the script executed without a fatal error.
-- stdout was valid JSON (`[]`, `{ jobs: [] }`, or `{ results: [] }`).
+- stdout was valid JSON (`[]`, `{ gigs: [] }`, or `{ results: [] }`).
 - There was no timeout or process crash.
 
 | Level | If the company is in `local_parser_ok` |
@@ -100,14 +100,14 @@ During the agent's scan, keep the **`local_parser_ok`** set in memory. This set 
 **Exceptions:**
 
 - Parser **failed** → the company is **not** added to `local_parser_ok`; Levels 1 and 2 apply normally (same criteria as the fallback in `scan.mjs` when the parser fails and an ATS API is available).
-- Level 3: do not deactivate cross-cutting queries (`site:jobs.ashbyhq.com`, `site:boards.greenhouse.io`, etc.) — these are used to discover **new** companies. Only filter out results for companies already in `tracked_companies` with a successful parser.
-- Do not create dedicated `search_queries` for a company with an active local parser (e.g. `site:jobs.ashbyhq.com/cohere "AI Engineer"`); use the parser or, if it fails, Playwright/API.
+- Level 3: do not deactivate cross-cutting queries (`site:gigs.ashbyhq.com`, `site:boards.greenhouse.io`, etc.) — these are used to discover **new** companies. Only filter out results for companies already in `tracked_companies` with a successful parser.
+- Do not create dedicated `search_queries` for a company with an active local parser (e.g. `site:gigs.ashbyhq.com/cohere "AI Engineer"`); use the parser or, if it fails, Playwright/API.
 
 **Recommended Level 0:** run `node scan.mjs` (or `npm run scan`) at the start of the agent's workflow. This covers local parsers + APIs in a single zero-token step and returns which companies used the `local-parser` successfully.
 
 ### Level 1 — Direct Playwright (PRIMARY)
 
-**For each company in `tracked_companies` that is not in `local_parser_ok`:** Navigate to its `careers_url` with Playwright (`browser_navigate` + `browser_snapshot`), read ALL visible job listings, and extract the title + URL for each. This is the most reliable method because:
+**For each company in `tracked_companies` that is not in `local_parser_ok`:** Navigate to its `careers_url` with Playwright (`browser_navigate` + `browser_snapshot`), read ALL visible gig listings, and extract the title + URL for each. This is the most reliable method because:
 - It views the page in real time (not cached Google results)
 - It works with SPAs (Ashby, Lever, Workday)
 - It detects new offers instantly
@@ -120,24 +120,24 @@ During the agent's scan, keep the **`local_parser_ok`** set in memory. This set 
 For companies with a public API or structured feed **that are not in `local_parser_ok`**, use the JSON/XML response as a fast complement to Level 1. This is faster than Playwright and reduces visual scraping errors.
 
 **Current Support (variables inside `{}`):**
-- **Greenhouse**: `https://boards-api.greenhouse.io/v1/boards/{company}/jobs`
-- **Ashby**: `https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiJobBoardWithTeams`
-- **BambooHR**: list `https://{company}.bamboohr.com/careers/list`; job details `https://{company}.bamboohr.com/careers/{id}/detail`
+- **Greenhouse**: `https://boards-api.greenhouse.io/v1/boards/{company}/gigs`
+- **Ashby**: `https://gigs.ashbyhq.com/api/non-user-graphql?op=ApiJobBoardWithTeams`
+- **BambooHR**: list `https://{company}.bamboohr.com/careers/list`; gig details `https://{company}.bamboohr.com/careers/{id}/detail`
 - **Lever**: `https://api.lever.co/v0/postings/{company}?mode=json`
-- **Teamtailor**: `https://{company}.teamtailor.com/jobs.rss`
-- **Workday**: `https://{company}.{shard}.myworkdayjobs.com/wday/cxs/{company}/{site}/jobs`
+- **Teamtailor**: `https://{company}.teamtailor.com/gigs.rss`
+- **Workday**: `https://{company}.{shard}.myworkdaygigs.com/wday/cxs/{company}/{site}/gigs`
 
 **Parsing Conventions by Provider:**
-- `greenhouse`: `jobs[]` → `title`, `absolute_url`
-- `ashby`: GraphQL `ApiJobBoardWithTeams` with `organizationHostedJobsPageName={company}` → `jobBoard.jobPostings[]` (`title`, `id`; build public URL if not present in payload)
-- `bamboohr`: list `result[]` → `jobOpeningName`, `id`; build detail URL `https://{company}.bamboohr.com/careers/{id}/detail`; to read full JD, make a GET request to the detail URL and use `result.jobOpening` (`jobOpeningName`, `description`, `datePosted`, `minimumExperience`, `compensation`, `jobOpeningShareUrl`)
+- `greenhouse`: `gigs[]` → `title`, `absolute_url`
+- `ashby`: GraphQL `ApiJobBoardWithTeams` with `organizationHostedJobsPageName={company}` → `gigBoard.gigPostings[]` (`title`, `id`; build public URL if not present in payload)
+- `bamboohr`: list `result[]` → `gigOpeningName`, `id`; build detail URL `https://{company}.bamboohr.com/careers/{id}/detail`; to read full JD, make a GET request to the detail URL and use `result.gigOpening` (`gigOpeningName`, `description`, `datePosted`, `minimumExperience`, `compensation`, `gigOpeningShareUrl`)
 - `lever`: root array `[]` → `text`, `hostedUrl` (fallback: `applyUrl`)
 - `teamtailor`: RSS items → `title`, `link`
-- `workday`: `jobPostings[]`/`jobPostings` (based on tenant) → `title`, `externalPath` or URL built from the host
+- `workday`: `gigPostings[]`/`gigPostings` (based on tenant) → `title`, `externalPath` or URL built from the host
 
 ### Level 3 — WebSearch Queries (BROAD DISCOVERY)
 
-The `search_queries` with `site:` filters cover portals transversally (all Ashby, all Greenhouse, etc.). Useful for discovering NEW companies that are not yet in `tracked_companies`, but results might be outdated. After filtering out hits from companies in `local_parser_ok`, the remaining results are deduplicated with Levels 0–2.
+The `search_queries` with `site:` filters cover sources transversally (all Ashby, all Greenhouse, etc.). Useful for discovering NEW companies that are not yet in `tracked_companies`, but results might be outdated. After filtering out hits from companies in `local_parser_ok`, the remaining results are deduplicated with Levels 0–2.
 
 **Execution Priority:**
 1. Level 0: Local Parser → companies with a configured `parser:` and existing script; build `local_parser_ok`
@@ -159,18 +159,18 @@ Levels are additive — they are executed in order, and results are merged and d
    For each company in `tracked_companies` with `enabled: true`, `parser.command`, and an existing script:
    a. Execute `parser.command` with `parser.script` + `parser.args` using local process execution without shell.
    b. Expand `{careers_url}` and `{company}` placeholders in arguments.
-   c. Read JSON from stdout (`[]`, `{ jobs: [] }`, or `{ results: [] }`).
-   d. Normalize each job to `{title, url, company, location}`.
+   c. Read JSON from stdout (`[]`, `{ gigs: [] }`, or `{ results: [] }`).
+   d. Normalize each gig to `{title, url, company, location}`.
    e. Resolve relative URLs against `careers_url`.
    f. If the parser fails, log the error, attempt fallback via the ATS API if it exists, and continue with the other companies (**do not** add to `local_parser_ok`).
-   g. If the parser completes successfully (steps c–e without fatal error), add `entry.name` to `local_parser_ok` and accumulate jobs in candidates.
+   g. If the parser completes successfully (steps c–e without fatal error), add `entry.name` to `local_parser_ok` and accumulate gigs in candidates.
 
 4. **Level 1 — Playwright Scan** (parallel in batches of 3-5):
    For each company in `tracked_companies` with `enabled: true`, a defined `careers_url`, and a **name not listed in `local_parser_ok`**:
    a. `browser_navigate` to `careers_url`.
-   b. `browser_snapshot` to read all job listings.
+   b. `browser_snapshot` to read all gig listings.
    c. If the page has filters/departments, navigate the relevant sections.
-   d. For each job listing, extract: `{title, url, company}`.
+   d. For each gig listing, extract: `{title, url, company}`.
    e. If the page has pagination, navigate subsequent pages.
    f. Accumulate in the candidates list.
    g. If `careers_url` fails (404, redirect), attempt `scan_query` as a fallback and note it to update the URL later.
@@ -178,14 +178,14 @@ Levels are additive — they are executed in order, and results are merged and d
 5. **Level 2 — ATS APIs / Feeds** (parallel):
    For each company in `tracked_companies` with a defined `api:`, `enabled: true`, and a **name not listed in `local_parser_ok`**:
    a. WebFetch the API/feed URL.
-   b. If `api_provider` is defined, use its parser; if undefined, infer by domain (`boards-api.greenhouse.io`, `jobs.ashbyhq.com`, `api.lever.co`, `*.bamboohr.com`, `*.teamtailor.com`, `*.myworkdayjobs.com`).
+   b. If `api_provider` is defined, use its parser; if undefined, infer by domain (`boards-api.greenhouse.io`, `gigs.ashbyhq.com`, `api.lever.co`, `*.bamboohr.com`, `*.teamtailor.com`, `*.myworkdaygigs.com`).
    c. For **Ashby**, send a POST request with:
       - `operationName: ApiJobBoardWithTeams`
       - `variables.organizationHostedJobsPageName: {company}`
-      - GraphQL query of `jobBoardWithTeams` + `jobPostings { id title locationName employmentType compensationTierSummary }`
-   d. For **BambooHR**, the list only returns basic metadata. For each relevant item, retrieve the `id`, make a GET request to `https://{company}.bamboohr.com/careers/{id}/detail`, and extract the full JD from `result.jobOpening`. Use `jobOpeningShareUrl` as the public URL if present; otherwise, use the detail URL.
+      - GraphQL query of `gigBoardWithTeams` + `gigPostings { id title locationName employmentType compensationTierSummary }`
+   d. For **BambooHR**, the list only returns basic metadata. For each relevant item, retrieve the `id`, make a GET request to `https://{company}.bamboohr.com/careers/{id}/detail`, and extract the full JD from `result.gigOpening`. Use `gigOpeningShareUrl` as the public URL if present; otherwise, use the detail URL.
    e. For **Workday**, send a JSON POST request with at least `{"appliedFacets":{},"limit":20,"offset":0,"searchText":""}` and paginate by `offset` until results are exhausted.
-   f. For each job, extract and normalize: `{title, url, company}`.
+   f. For each gig, extract and normalize: `{title, url, company}`.
    g. Accumulate in the candidates list (deduplicated against Level 1).
 
 6. **Level 3 — WebSearch Queries** (parallel if possible):
@@ -214,7 +214,7 @@ Levels are additive — they are executed in order, and results are merged and d
 
 7. **Deduplicate** against 3 sources:
    - `scan-history.tsv` → exact URL already seen
-   - `applications.md` → normalized company + role already evaluated
+   - `leads.md` → normalized company + role already evaluated
    - `pipeline.md` → exact URL already in pending or processed list
 
 7.5. **Verify Liveness of WebSearch Results (Level 3)** — BEFORE adding to pipeline:
@@ -225,10 +225,10 @@ Levels are additive — they are executed in order, and results are merged and d
    a. `browser_navigate` to the URL.
    b. `browser_snapshot` to read the content.
    c. Classify:
-      - **Active**: visible job title + role description + visible Apply/Submit/Apply Now control inside the main content area. Do not count generic header/navbar/footer text.
+      - **Active**: visible gig title + role description + visible Apply/Submit/Apply Now control inside the main content area. Do not count generic header/navbar/footer text.
       - **Expired** (any of these signals):
         - Final URL contains `?error=true` (Greenhouse redirects here when an offer is closed).
-        - Page contains: "job no longer available" / "no longer open" / "position has been filled" / "this job has expired" / "page not found".
+        - Page contains: "gig no longer available" / "no longer open" / "position has been filled" / "this gig has expired" / "page not found".
         - Only navbar and footer are visible, with no JD content (content < ~300 characters).
    d. If expired: record in `scan-history.tsv` with status `skipped_expired` and discard.
    e. If active: continue to step 8.
@@ -293,35 +293,35 @@ Every company in `tracked_companies` must have a `careers_url` — the direct UR
 
 **RULE: Always use the corporate careers URL of the company; fallback to the direct ATS endpoint only if no corporate careers page exists.**
 
-The `careers_url` should point to the company's own careers page whenever available. Many companies use Workday, Greenhouse, or Lever under the hood, but expose vacancy IDs only through their corporate domain. Using the direct ATS URL when a corporate careers page exists can cause false 410 errors because job IDs do not match.
+The `careers_url` should point to the company's own careers page whenever available. Many companies use Workday, Greenhouse, or Lever under the hood, but expose vacancy IDs only through their corporate domain. Using the direct ATS URL when a corporate careers page exists can cause false 410 errors because gig IDs do not match.
 
 | ✅ Correct (corporate) | ❌ Incorrect as first choice (direct ATS) |
 |---|---|
-| `https://careers.mastercard.com` | `https://mastercard.wd1.myworkdayjobs.com` |
-| `https://openai.com/careers` | `https://job-boards.greenhouse.io/openai` |
-| `https://stripe.com/jobs` | `https://jobs.lever.co/stripe` |
+| `https://careers.mastercard.com` | `https://mastercard.wd1.myworkdaygigs.com` |
+| `https://openai.com/careers` | `https://gig-boards.greenhouse.io/openai` |
+| `https://stripe.com/gigs` | `https://gigs.lever.co/stripe` |
 
 Fallback: if you only have the direct ATS URL, navigate first to the company's website and locate their corporate careers page. Use the direct ATS URL only if the company does not have its own corporate careers page.
 
 **Known Patterns by Platform:**
-- **Ashby:** `https://jobs.ashbyhq.com/{slug}`
-- **Greenhouse:** `https://job-boards.greenhouse.io/{slug}` or `https://job-boards.eu.greenhouse.io/{slug}`
-- **Lever:** `https://jobs.lever.co/{slug}`
+- **Ashby:** `https://gigs.ashbyhq.com/{slug}`
+- **Greenhouse:** `https://gig-boards.greenhouse.io/{slug}` or `https://gig-boards.eu.greenhouse.io/{slug}`
+- **Lever:** `https://gigs.lever.co/{slug}`
 - **BambooHR:** list `https://{company}.bamboohr.com/careers/list`; detail `https://{company}.bamboohr.com/careers/{id}/detail`
-- **Teamtailor:** `https://{company}.teamtailor.com/jobs`
-- **Workday:** `https://{company}.{shard}.myworkdayjobs.com/{site}`
+- **Teamtailor:** `https://{company}.teamtailor.com/gigs`
+- **Workday:** `https://{company}.{shard}.myworkdaygigs.com/{site}`
 - **Custom:** The company's own URL (e.g. `https://openai.com/careers`)
 
 **API/Feed Patterns by Platform:**
-- **Ashby API:** `https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiJobBoardWithTeams`
-- **BambooHR API:** list `https://{company}.bamboohr.com/careers/list`; detail `https://{company}.bamboohr.com/careers/{id}/detail` (`result.jobOpening`)
+- **Ashby API:** `https://gigs.ashbyhq.com/api/non-user-graphql?op=ApiJobBoardWithTeams`
+- **BambooHR API:** list `https://{company}.bamboohr.com/careers/list`; detail `https://{company}.bamboohr.com/careers/{id}/detail` (`result.gigOpening`)
 - **Lever API:** `https://api.lever.co/v0/postings/{company}?mode=json`
-- **Teamtailor RSS:** `https://{company}.teamtailor.com/jobs.rss`
-- **Workday API:** `https://{company}.{shard}.myworkdayjobs.com/wday/cxs/{company}/{site}/jobs`
+- **Teamtailor RSS:** `https://{company}.teamtailor.com/gigs.rss`
+- **Workday API:** `https://{company}.{shard}.myworkdaygigs.com/wday/cxs/{company}/{site}/gigs`
 
 **If `careers_url` does not exist** for a company:
 1. Attempt the pattern of its known platform.
-2. If it fails, do a quick WebSearch: `"{company}" careers jobs`.
+2. If it fails, do a quick WebSearch: `"{company}" careers gigs`.
 3. Navigate with Playwright to confirm it works.
 4. **Save the found URL in sources.yml** for future scans.
 
@@ -333,7 +333,7 @@ Fallback: if you only have the direct ATS URL, navigate first to the company's w
 ## Maintenance of sources.yml
 
 - **ALWAYS save `careers_url`** when adding a new company.
-- Add new queries as interesting portals or roles are discovered.
+- Add new queries as interesting sources or roles are discovered.
 - Deactivate noisy queries with `enabled: false`.
 - Adjust filter keywords as target roles evolve.
 - Add companies to `tracked_companies` when you want to follow them closely.
