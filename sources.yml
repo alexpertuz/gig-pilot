@@ -1,98 +1,89 @@
-# sources.yml — gig-ops source configuration
-#
-# Copy this file to sources.yml in the project root and customize it.
-# This is a User Layer file — it will never be auto-updated.
-#
-# Run: cp templates/sources.example.yml sources.yml
+# sources.yml — gig-ops source configuration (active)
+# Tuned for DEMAND-SIDE freelance gigs (someone looking to hire), not full-time roles.
 
 # ─── Filters ──────────────────────────────────────────────────────────────────
-# All filters are AND'd. Empty arrays = no filtering on that dimension.
-# Title filter: gig title must contain at least one of these strings (case-insensitive).
+# title_filter and content_filter use { positive, negative } keyword lists.
+#   positive: title/description must contain at least one of these (if list is non-empty)
+#   negative: drop if it contains any of these
 title_filter:
-  - "looking for"
-  - "need a developer"
-  - "need a designer"
-  - "need a"
-  - "seeking"
-  - "[Hiring]"
-  - "contract"
-  - "freelance"
+  positive:
+    - "[hiring]"
+    - "looking for"
+    - "need a"
+    - "needed"
+    - "seeking"
+    - "wanted"
+    - "freelance"
+    - "freelancer"
+    - "contract"
+    - "for hire"        # r/forhire demand+supply; negative list trims the supply side
+  negative:
+    - "[for hire]"      # exclude freelancers advertising themselves (supply side)
+    - "intern"
+    - "internship"
+    - "unpaid"
+    - "volunteer"
 
-# Content filter: gig description must contain at least one of these strings.
-# Helps exclude posts with no budget signal.
 content_filter:
-  - "budget"
-  - "paid"
-  - "rate"
-  - "hourly"
-  - "fixed price"
-  - "compensation"
-  - "$"
-  - "€"
-  - "£"
+  positive: []          # empty = don't require body keywords (titles already filtered)
+  negative:
+    - "equity only"
+    - "revenue share only"
+    - "for exposure"
+    - "for your portfolio"
 
-# Location filter: at least one must match (empty string = remote/unspecified accepted).
+# location_filter: { always_allow, allow, block }
 location_filter:
-  - "remote"
-  - ""
+  always_allow:
+    - "remote"
+  block: []
 
-# Budget filter: minimum acceptable budget signals.
+# ─── Budget filter (freelance — hourly/project, NOT annual salary) ────────────
 budget_filter:
-  min_hourly: 20
-  min_project: 150
+  min_hourly: 15
+  min_project: 100
   exclude_unpaid: true
 
 # ─── Scan history ─────────────────────────────────────────────────────────────
 scan_history:
   ttl_days: 30
 
-# ─── Gig boards (provider-based) ─────────────────────────────────────────────
+# ─── Gig boards ───────────────────────────────────────────────────────────────
 gig_boards:
 
-  # Reddit - public JSON API, no auth required
+  # Reddit — the primary demand-side source. Public RSS, no auth.
+  # NOTE: space scans a few minutes apart — Reddit rate-limits unauthenticated
+  # requests (~1 req / 2-3s). Hammering it returns 429 / zero results.
   - name: "r/forhire"
     provider: reddit
     subreddit: forhire
+    # search_queries narrow the RSS feed locally by title. [Hiring] = demand side.
     search_queries:
-      - "[Hiring]"
-      - "looking for a developer"
-      - "looking for a designer"
-      - "looking for a freelancer"
+      - "[hiring]"
 
   - name: "r/jobbit"
     provider: reddit
     subreddit: jobbit
-    search_queries:
-      - "[Hiring]"
 
-  - name: "r/hiring"
+  - name: "r/slavelabour"
     provider: reddit
-    subreddit: hiring
+    subreddit: slavelabour
     search_queries:
-      - "contract"
-      - "freelance"
-      - "part-time"
+      - "[task]"
+      - "[hiring]"
 
-  # RemoteOK - remote-first gig board with clean public API
+  # Remote job boards — mostly FULL-TIME roles. Disabled by default because they
+  # flood the inbox with non-freelance jobs. Enable + rely on title_filter if you
+  # also want remote contract roles.
   - name: "RemoteOK"
     provider: remoteok
+    enabled: false
     tags:
       - dev
-      - frontend
-      - backend
-      - fullstack
+      - contract
 
-  # WorkingNomads
   - name: "WorkingNomads"
     provider: workingnomads
+    enabled: false
     categories:
       - programming
-
-# ─── Tracked posters ──────────────────────────────────────────────────────────
-# Track specific Reddit users or company accounts.
-# These bypass title/content filters (you have already vetted the source).
-#
-# tracked_posters:
-#   - name: "some_reddit_user"
-#     provider: reddit
-#     subreddit: forhire
