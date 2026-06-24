@@ -220,63 +220,69 @@ export function buildContentFilter(contentFilter) {
   };
 }
 
-// ── Salary filter ───────────────────────────────────────────────────
-// Optional. If `salary_filter` is absent from sources.yml, all salaries pass.
-// Semantics:
-//   - min/max are annual compensation filters (use annualized values)
-//   - max: 0 means "no upper limit"
-//   - If no salary data exists on a job, it passes (conservative behavior)
-//   - If both currencies are known and mismatch (e.g., USD filter, EUR job), it fails
-//   - Partial ranges (min only or max only) work correctly via overlap logic
-// Uses null-safe checks (!= null, ??) to preserve 0 values correctly.
+// ── Budget filter ───────────────────────────────────────────────────
+// Freelance gigs are priced hourly or per-project, NOT as annual salaries.
+// This filter drops gigs whose budget is clearly below your floor, and
+// (optionally) gigs detected as unpaid/equity-only.
+//
+// Config (sources.yml → budget_filter):
+//   min_hourly:    minimum acceptable $/hr (0 = no minimum)
+//   min_project:   minimum acceptable fixed-project budget (0 = no minimum)
+//   exclude_unpaid: drop gigs with paymentModel 'unpaid' or 'equity' (default true)
+//
+// Conservative by design: a gig only gets dropped when we can read a clearly
+// below-threshold number or detect an unpaid/equity model. Gigs with no budget
+// signal pass through — Block B of the evaluation handles them later.
 
-export function buildSalaryFilter(salaryFilter) {
-  if (!salaryFilter) return () => true;
+// parseBudget extracts an hourly rate and/or a fixed amount from a gig's
+// budget string. Returns { hourly: number|null, fixed: number|null }.
+// Examples: "$50/hr" → { hourly: 50 }, "$500" → { fixed: 500 },
+//           "$40-60/hr" → { hourly: 40 } (lower bound), "negotiable" → {}
+export function parseBudget(budgetStr) {
+  if (!budgetStr || typeof budgetStr !== 'string') return { hourly: null, fixed: null };
+  const s = budgetStr.toLowerCase();
+  // First number in the string (handles ranges by taking the lower bound)
+  const numMatch = s.replace(/,/g, '').match(/\d+(?:\.\d+)?/);
+  if (!numMatch) return { hourly: null, fixed: null };
+  const amount = Number(numMatch[0]);
+  if (!Number.isFinite(amount)) return { hourly: null, fixed: null };
+  const isHourly = /\/\s*h(r|our)?\b|per\s*hour|hourly/.test(s);
+  return isHourly ? { hourly: amount, fixed: null } : { hourly: null, fixed: amount };
+}
 
-  // Coerce and validate bounds — malformed YAML must not silently mis-filter
-  const min = Number(salaryFilter.min ?? 0);
-  const max = Number(salaryFilter.max ?? 0);
-  const filterCurrency = (salaryFilter.currency || '').trim().toUpperCase();
+export function buildBudgetFilter(budgetFilter) {
+  const cfg = budgetFilter && typeof budgetFilter === 'object' ? budgetFilter : {};
+  const minHourly = Number(cfg.min_hourly ?? 0);
+  const minProject = Number(cfg.min_project ?? 0);
+  // exclude_unpaid defaults to true — unpaid/equity gigs are the thing we most
+  // want to filter out in this domain.
+  const excludeUnpaid = cfg.exclude_unpaid !== false;
 
-  if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < 0) {
-    console.error('Warning: salary_filter.min/max must be non-negative numbers — salary filter disabled');
+  if (!Number.isFinite(minHourly) || !Number.isFinite(minProject) || minHourly < 0 || minProject < 0) {
+    console.error('Warning: budget_filter.min_hourly/min_project must be non-negative — budget filter disabled');
     return () => true;
   }
-  if (max > 0 && min > max) {
-    console.error('Warning: salary_filter.min cannot exceed salary_filter.max — salary filter disabled');
-    return () => true;
-  }
 
-  // If both min and max are 0, no filtering applied
-  if (min === 0 && max === 0) return () => true;
+  // Nothing to filter on
+  if (minHourly === 0 && minProject === 0 && !excludeUnpaid) return () => true;
 
-  return (salary) => {
-    // If no salary data exists, pass (conservative - many providers don't expose salary)
-    if (!salary) return true;
+  return (gig) => {
+    if (!gig || typeof gig !== 'object') return true;
 
-    const jobMin = salary.min ?? salary.max ?? null;
-    const jobMax = salary.max ?? salary.min ?? null;
-
-    // If we have no usable salary values, pass conservatively
-    if (jobMin == null && jobMax == null) return true;
-
-    // Currency handling - reject only if BOTH currencies exist and mismatch
-    const jobCurrency = (salary.currency || '').trim().toUpperCase();
-    if (filterCurrency && jobCurrency && filterCurrency !== jobCurrency) {
+    // Drop unpaid / equity-only gigs
+    if (excludeUnpaid && (gig.paymentModel === 'unpaid' || gig.paymentModel === 'equity')) {
       return false;
     }
 
-    // Range overlap logic - reject ONLY if job is completely outside filter range
-    // Job entirely below user minimum
-    if (min > 0 && jobMax != null && jobMax < min) {
-      return false;
-    }
-    // Job entirely above user maximum
-    if (max > 0 && jobMin != null && jobMin > max) {
-      return false;
-    }
+    // Parse the budget string (freelance providers set gig.budget)
+    const { hourly, fixed } = parseBudget(gig.budget);
 
-    // Otherwise pass (overlap exists or no valid range to compare)
+    // Below the hourly floor
+    if (minHourly > 0 && hourly != null && hourly < minHourly) return false;
+    // Below the project floor
+    if (minProject > 0 && fixed != null && fixed < minProject) return false;
+
+    // No readable budget signal → pass conservatively
     return true;
   };
 }
@@ -758,7 +764,7 @@ async function main() {
     : Array.isArray(config.job_boards) ? config.job_boards : [];
   const titleFilter = buildTitleFilter(config.title_filter);
   const locationFilter = buildLocationFilter(config.location_filter);
-  const salaryFilter = buildSalaryFilter(config.salary_filter);
+  const budgetFilter = buildBudgetFilter(config.budget_filter);
   const contentFilter = buildContentFilter(config.content_filter);
 
   // 3. Resolve a provider for each enabled company / board
@@ -830,7 +836,7 @@ async function main() {
   let totalFound = 0;
   let totalFilteredTitle = 0;
   let totalFilteredLocation = 0;
-  let totalFilteredSalary = 0;
+  let totalFilteredBudget = 0;
   let totalFilteredContent = 0;
   let totalDupes = 0;
   const newOffers = [];
@@ -870,8 +876,8 @@ async function main() {
           totalFilteredLocation++;
           continue;
         }
-        if (!salaryFilter(job.salary)) {
-          totalFilteredSalary++;
+        if (!budgetFilter(job)) {
+          totalFilteredBudget++;
           continue;
         }
         if (!contentFilter(job.description)) {
@@ -974,7 +980,7 @@ async function main() {
   console.log(`Total jobs found:      ${totalFound}`);
   console.log(`Filtered by title:     ${totalFilteredTitle} removed`);
   console.log(`Filtered by location:  ${totalFilteredLocation} removed`);
-  console.log(`Filtered by salary:   ${totalFilteredSalary} removed`);
+  console.log(`Filtered by budget:   ${totalFilteredBudget} removed`);
   console.log(`Filtered by content:  ${totalFilteredContent} removed`);
   console.log(`Duplicates:            ${totalDupes} skipped`);
   if (historyPolicy.recheckAfterDays != null) {

@@ -2,101 +2,82 @@
 
 <!-- ============================================================
      THIS FILE IS YOURS. It will NEVER be auto-updated.
-     
-     Customize everything here: your archetypes, narrative,
-     proof points, negotiation scripts, location policy.
-     
+
+     Copy it to modes/_profile.md and customize: your services,
+     ideal-gig framing, proof points, rate-negotiation scripts.
+
      The system reads _shared.md (updatable) first, then this
      file (your overrides). Your customizations always win.
      ============================================================ -->
 
-## Your Target Roles
+## Your Services
 
-<!-- Replace these with YOUR target roles. Examples:
-     - Senior Backend Engineer / Staff Platform Engineer
-     - AI Product Manager / Technical PM
-     - Data Engineer / ML Engineer
-     - DevOps / SRE / Platform
-     Whatever you're optimizing for. -->
+<!-- Replace with YOUR services. These map to the archetypes in
+     config/profile.yml and drive Block A (Fit) scoring. Examples:
+     - Full-stack web development (React, Node)
+     - Backend / API development (Python, Go)
+     - Frontend / design-to-code (Next.js, Tailwind)
+     - Mobile (React Native, Flutter) -->
 
-| Archetype | Thematic axes | What they buy |
-|-----------|---------------|---------------|
-| **AI Platform / LLMOps Engineer** | Evaluation, observability, reliability, pipelines | Someone who puts AI in production with metrics |
-| **Agentic Workflows / Automation** | HITL, tooling, orchestration, multi-agent | Someone who builds reliable agent systems |
-| **Technical AI Product Manager** | GenAI/Agents, PRDs, discovery, delivery | Someone who translates business to AI product |
-| **AI Solutions Architect** | Hyperautomation, enterprise, integrations | Someone who designs end-to-end AI architectures |
-| **AI Forward Deployed Engineer** | Client-facing, fast delivery, prototyping | Someone who delivers AI solutions to clients fast |
-| **AI Transformation Lead** | Change management, adoption, org enablement | Someone who leads AI transformation in an org |
+| Service | What you do | Proof point sources |
+|---------|-------------|---------------------|
+| **Full-stack web dev** | Ship features end to end (React + Node) | article-digest.md |
+| **API / Backend** | Design and build APIs and integrations | article-digest.md |
+| **Frontend** | Turn designs into fast, clean UIs | article-digest.md |
 
 ## Your Adaptive Framing
 
-<!-- Map YOUR projects to each archetype. Example:
-     | Platform / LLMOps | My monitoring dashboard project | article-digest.md |
-     | Agentic | My chatbot with HITL escalation | cv.md section 3 | -->
+<!-- For each kind of gig, what should you emphasize? Map your real
+     work to each angle. -->
 
-| If the role is... | Emphasize about you... | Proof point sources |
-|-------------------|------------------------|---------------------|
-| Platform / LLMOps | Production systems builder, observability, evals | article-digest.md + cv.md |
-| Agentic / Automation | Multi-agent orchestration, HITL, reliability | article-digest.md + cv.md |
-| Technical AI PM | Product discovery, PRDs, metrics | cv.md + article-digest.md |
-| Solutions Architect | System design, integrations, enterprise-ready | article-digest.md + cv.md |
-| Forward Deployed Engineer | Fast delivery, client-facing, prototype to prod | cv.md + article-digest.md |
-| AI Transformation Lead | Change management, team enablement, adoption | cv.md + article-digest.md |
+| If the gig is... | Emphasize about you... | Proof point |
+|------------------|------------------------|-------------|
+| Greenfield build | Solo product ownership, ship fast | [your project] |
+| Fix / refactor | Diagnose quickly, surgical changes | [your project] |
+| Integration | API experience, clean contracts | [your project] |
+| Design-to-code | Pixel-accurate, fast turnaround | [your project] |
 
-## Your Exit Narrative
+## Your Differentiator
 
-<!-- Replace with YOUR story. This frames everything. -->
+<!-- What's your signature move? Why you over the other 50 people
+     who replied to the post? -->
 
-Use the candidate's exit story from `config/profile.yml` to frame ALL content:
-- **In PDF Summaries:** Bridge from past to future
-- **In STAR stories:** Reference proof points from article-digest.md
-- **In Draft Answers:** The transition narrative appears in the first response
-
-## Your Cross-cutting Advantage
-
-<!-- What's your "signature move"? What do you do that others can't? -->
-
-Frame profile as **"Technical builder with real-world proof"** that adapts framing to the role.
+Frame yourself as **"a builder with real shipped work"** who adapts the pitch to the gig.
 
 ## Your Portfolio / Demo
 
-<!-- If you have a live demo, dashboard, or public project:
-     url: https://yoursite.dev/demo
-     password: demo-2026
-     when_to_share: "LLMOps, AI Platform roles" -->
+<!-- Live demo, dashboard, or public repo to share in proposals:
+     url: https://yoursite.dev
+     when_to_share: "frontend / product gigs" -->
 
-If you have a live demo/dashboard (check profile.yml), offer access in applications for relevant roles.
+## Your Rate Posture
 
-## Your Comp Targets
+<!-- Pulled from config/profile.yml → rate_card. This section is for
+     HOW you talk about rate, not the numbers themselves. -->
 
-<!-- Research comp ranges for YOUR target roles -->
+**Rate framing:**
+- Lead with value delivered, not hours. ("I'll get you a working X" beats "I charge $Y/hr".)
+- Quote a number. Never "it depends" or "negotiable" in a first message.
+- Fixed-price for well-scoped gigs; hourly for open-ended or discovery work.
 
-**General guidance:**
-- Use WebSearch for current market data (Glassdoor, Levels.fyi, Blind)
-- Frame by role title, not by skills
-- Contractor rates are typically 30-50% higher than employee base
+**Negotiation scripts:**
+> When they say the budget is lower than your rate:
+> "I can work within that if we trim scope to [X]. What's the one thing that has to ship?"
 
-## Your Negotiation Scripts
+> When the gig is unpaid / equity-only:
+> "I work paid engagements only. I can do a fixed-price [deliverable] at $X — you own the result, no strings. If it grows, we can talk ongoing."
 
-<!-- Adapt to YOUR situation, currency, location -->
+> When they want a free "test task":
+> "Happy to do a paid trial — first [small unit of work] at $X. If you're not happy, no further commitment."
 
-**Salary expectations:**
-> "Based on market data for this role, I'm targeting [RANGE from profile.yml]. I'm flexible on structure -- what matters is the total package and the opportunity."
+## Scoring overrides
 
-**Geographic discount pushback:**
-> "The roles I'm competitive for are output-based, not location-based. My track record doesn't change based on postal code."
+<!-- Adjust how the scoring blocks apply to YOUR situation. -->
 
-**When offered below target:**
-> "I'm comparing with opportunities in the [higher range]. I'm drawn to [company] because of [reason]. Can we explore [target]?"
+**In evaluations (Block B — Budget):**
+- A clearly-stated rate at or above your target is a 5, even if the gig is small.
+- A gig with no rate but a credible poster and clear scope is a 3 (negotiate), not an auto-decline.
+- Unpaid / equity-only is always a 1 — write the report, recommend a paid counter, don't draft a straight proposal.
 
-## Your Location Policy
-
-<!-- Adapt to YOUR situation -->
-
-**In forms:**
-- Follow your actual availability from profile.yml
-- Specify timezone overlap in free-text fields
-
-**In evaluations (scoring):**
-- Remote dimension for hybrid outside your country: score **3.0** (not 1.0)
-- Only score 1.0 if JD says "must be on-site 4-5 days/week, no exceptions"
+**In evaluations (Block C — Scope):**
+- "MVP", "simple", "quick", "just need" without a feature list → cap Scope at 2 until clarified.
