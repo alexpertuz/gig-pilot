@@ -279,10 +279,10 @@ ${profileContent}
 IMPORTANT OPERATING RULES FOR THIS CLI SESSION
 ═══════════════════════════════════════════════════════
 1. You do NOT have access to WebSearch, Playwright, or file writing tools.
-   - For Block D (Comp research): provide salary estimates based on your training data, clearly noted as estimates.
-   - For Block G (Legitimacy): analyze the JD text only; skip URL/page freshness checks.
+   - For Block B (Budget realism): estimate a fair freelance rate from the gig text and your training data, clearly noted as an estimate. Never annualize — rates are hourly or per-project.
+   - For Block D (Poster legitimacy): analyze the post text only; skip URL/page freshness checks.
    - Post-evaluation file saving is handled by the script, not by you.
-2. Generate Blocks A through G in full, in English, unless the JD is in another language.
+2. Generate Blocks A through F in full, in English, unless the gig post is in another language.
 3. At the very end, output a machine-readable summary block in this exact format:
 
 ---SCORE_SUMMARY---

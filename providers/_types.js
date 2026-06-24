@@ -38,7 +38,7 @@
 /**
  * Payment model of a gig.
  * Providers should set this when the source makes it clear.
- * scan.mjs can also derive it from budget strings via parseCompensation.
+ * scan.mjs can also derive it from budget strings via parseBudget.
  *
  * @typedef {'paid'|'hourly'|'fixed'|'equity'|'unpaid'|'unknown'} PaymentModel
  */
