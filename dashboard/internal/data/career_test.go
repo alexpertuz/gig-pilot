@@ -6,92 +6,89 @@ import (
 	"testing"
 )
 
-func TestParseApplicationsUsesTrackerNumberColumn(t *testing.T) {
+func TestParseLeadsUsesNumberColumn(t *testing.T) {
 	tempDir := t.TempDir()
 	dataDir := filepath.Join(tempDir, "data")
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		t.Fatalf("failed to create data dir: %v", err)
 	}
 
-	applications := `# Applications Tracker
+	leads := "1\t2026-06-01\tr/forhire\tu/poster1\tNeed a React dev\tdm\tnew\t4.2/5\t$50-75/hr\t2026-06-10\t[1](reports/001-react-dev-2026-06-01.md)\n" +
+		"2\t2026-06-02\tremoteok\tAcme Corp\tBackend Engineer\temail\tcontacted\t3.8/5\t$60/hr\t2026-06-12\t[2](reports/002-backend-2026-06-02.md)\n"
 
-| # | Date | Company | Role | Score | Status | PDF | Report | Notes |
-|---|------|---------|------|-------|--------|-----|--------|-------|
-| 140 | 2026-04-16 | Arize AI | AI Engineer, Instrumentation | 4.7/5 | Evaluated | ✅ | [140](reports/140-arize-ai-engineer-instrumentation-2026-04-16.md) | Strong fit |
-| 143 | 2026-04-16 | Arize AI | AI Sales Engineer, US | 4.1/5 | Evaluated | ❌ | [143](reports/143-arize-ai-sales-engineer-us-2026-04-16.md) | Good fit |
-`
-
-	applicationsPath := filepath.Join(dataDir, "applications.md")
-	if err := os.WriteFile(applicationsPath, []byte(applications), 0o644); err != nil {
-		t.Fatalf("failed to write applications tracker: %v", err)
+	leadsPath := filepath.Join(dataDir, "leads.md")
+	if err := os.WriteFile(leadsPath, []byte(leads), 0o644); err != nil {
+		t.Fatalf("failed to write leads.md: %v", err)
 	}
 
-	apps := ParseApplications(tempDir)
-	if len(apps) != 2 {
-		t.Fatalf("expected 2 parsed applications, got %d", len(apps))
+	parsed := ParseLeads(tempDir)
+	if len(parsed) != 2 {
+		t.Fatalf("expected 2 parsed leads, got %d", len(parsed))
 	}
 
-	if apps[0].Number != 140 {
-		t.Fatalf("expected first application number to be 140, got %d", apps[0].Number)
+	if parsed[0].Number != 1 {
+		t.Fatalf("expected first lead number to be 1, got %d", parsed[0].Number)
 	}
-	if apps[1].Number != 143 {
-		t.Fatalf("expected second application number to be 143, got %d", apps[1].Number)
-	}
-	if apps[0].ReportNumber != "140" || apps[1].ReportNumber != "143" {
-		t.Fatalf("expected report numbers to stay aligned with tracker IDs, got %q and %q", apps[0].ReportNumber, apps[1].ReportNumber)
+	if parsed[1].Number != 2 {
+		t.Fatalf("expected second lead number to be 2, got %d", parsed[1].Number)
 	}
 }
 
-func TestParseApplicationsResolvesTrackerRelativeReportLinks(t *testing.T) {
+func TestParseLeadsFields(t *testing.T) {
 	tempDir := t.TempDir()
 	dataDir := filepath.Join(tempDir, "data")
-	reportsDir := filepath.Join(tempDir, "reports")
-	for _, dir := range []string{dataDir, reportsDir} {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			t.Fatalf("failed to create dir %s: %v", dir, err)
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		t.Fatalf("failed to create data dir: %v", err)
+	}
+
+	line := "3\t2026-06-05\tr/forhire\tu/devhire\tBuild me a SaaS\tapply\tnegotiating\t4.5/5\t$2000 project\t2026-06-15\t[3](reports/003-saas-2026-06-05.md)\n"
+	if err := os.WriteFile(filepath.Join(dataDir, "leads.md"), []byte(line), 0o644); err != nil {
+		t.Fatalf("failed to write leads.md: %v", err)
+	}
+
+	parsed := ParseLeads(tempDir)
+	if len(parsed) != 1 {
+		t.Fatalf("expected 1 lead, got %d", len(parsed))
+	}
+
+	lead := parsed[0]
+	checks := map[string][2]string{
+		"Source":       {lead.Source, "r/forhire"},
+		"Poster":       {lead.Poster, "u/devhire"},
+		"Gig":          {lead.Gig, "Build me a SaaS"},
+		"Channel":      {lead.Channel, "apply"},
+		"Status":       {lead.Status, "negotiating"},
+		"Rate":         {lead.Rate, "$2000 project"},
+		"NextFollowup": {lead.NextFollowup, "2026-06-15"},
+		"ReportNumber": {lead.ReportNumber, "3"},
+		"ReportPath":   {lead.ReportPath, "reports/003-saas-2026-06-05.md"},
+	}
+	for field, pair := range checks {
+		if pair[0] != pair[1] {
+			t.Errorf("%s = %q, want %q", field, pair[0], pair[1])
 		}
 	}
-
-	// Tracker links are written relative to the tracker file itself
-	// (merge-tracker.mjs normalization): ../reports/... when the tracker
-	// lives under data/. Legacy trackers may still carry root-relative
-	// links; both must resolve to the same on-disk report.
-	applications := `# Applications Tracker
-
-| # | Date | Company | Role | Score | Status | PDF | Report | Notes |
-|---|------|---------|------|-------|--------|-----|--------|-------|
-| 1 | 2026-06-03 | Acme | Engineer | 4.0/5 | Evaluated | ✅ | [1](../reports/001-acme-2026-06-03.md) | Tracker-relative link |
-| 2 | 2026-06-03 | Legacy Co | Engineer | 3.0/5 | Evaluated | ❌ | [2](reports/002-legacy-2026-06-03.md) | Legacy root-relative link |
-`
-
-	if err := os.WriteFile(filepath.Join(dataDir, "applications.md"), []byte(applications), 0o644); err != nil {
-		t.Fatalf("failed to write applications tracker: %v", err)
+	if lead.Score != 4.5 {
+		t.Errorf("Score = %v, want 4.5", lead.Score)
 	}
-	for _, name := range []string{"001-acme-2026-06-03.md", "002-legacy-2026-06-03.md"} {
-		if err := os.WriteFile(filepath.Join(reportsDir, name), []byte("# Report\n"), 0o644); err != nil {
-			t.Fatalf("failed to write report %s: %v", name, err)
-		}
-	}
+}
 
-	apps := ParseApplications(tempDir)
-	if len(apps) != 2 {
-		t.Fatalf("expected 2 parsed applications, got %d", len(apps))
+func TestNormalizeStatus(t *testing.T) {
+	cases := map[string]string{
+		"new":         "new",
+		"New":         "new",
+		"contacted":   "contacted",
+		"replied":     "replied",
+		"negotiating": "negotiating",
+		"won":         "won",
+		"lost":        "lost",
+		"dropped":     "dropped",
+		"skip":        "dropped",
+		"":            "new",
 	}
-
-	wantFirst := filepath.Join("reports", "001-acme-2026-06-03.md")
-	if apps[0].ReportPath != wantFirst {
-		t.Fatalf("expected tracker-relative link to resolve to %q, got %q", wantFirst, apps[0].ReportPath)
-	}
-	wantSecond := filepath.Join("reports", "002-legacy-2026-06-03.md")
-	if apps[1].ReportPath != wantSecond {
-		t.Fatalf("expected legacy root-relative link to resolve to %q, got %q", wantSecond, apps[1].ReportPath)
-	}
-
-	// Every consumer joins ReportPath against careerOpsPath — both rows
-	// must point at files that exist.
-	for i, app := range apps {
-		if _, err := os.Stat(filepath.Join(tempDir, app.ReportPath)); err != nil {
-			t.Fatalf("row %d: resolved report path %q does not exist: %v", i, app.ReportPath, err)
+	for raw, want := range cases {
+		if got := NormalizeStatus(raw); got != want {
+			t.Errorf("NormalizeStatus(%q) = %q, want %q", raw, got, want)
 		}
 	}
 }

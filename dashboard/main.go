@@ -7,10 +7,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/santifer/career-ops/dashboard/internal/data"
-	"github.com/santifer/career-ops/dashboard/internal/model"
-	"github.com/santifer/career-ops/dashboard/internal/theme"
-	"github.com/santifer/career-ops/dashboard/internal/ui/screens"
+	"github.com/santifer/gig-ops/dashboard/internal/data"
+	"github.com/santifer/gig-ops/dashboard/internal/model"
+	"github.com/santifer/gig-ops/dashboard/internal/theme"
+	"github.com/santifer/gig-ops/dashboard/internal/ui/screens"
 )
 
 type viewState int
@@ -26,16 +26,16 @@ type appModel struct {
 	viewer          screens.ViewerModel
 	progress        screens.ProgressModel
 	state           viewState
-	careerOpsPath   string
+	gigOpsPath      string
 	theme           theme.Theme
 	progressMetrics model.ProgressMetrics
 }
 
 func (m *appModel) reloadPipelineData() {
-	apps := data.ParseApplications(m.careerOpsPath)
-	metrics := data.ComputeMetrics(apps)
-	m.progressMetrics = data.ComputeProgressMetrics(apps)
-	m.pipeline = m.pipeline.WithReloadedData(apps, metrics)
+	leads := data.ParseLeads(m.gigOpsPath)
+	metrics := data.ComputeMetrics(leads)
+	m.progressMetrics = data.ComputeProgressMetrics(leads)
+	m.pipeline = m.pipeline.WithReloadedData(leads, metrics)
 }
 
 func (m appModel) Init() tea.Cmd {
@@ -60,14 +60,13 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case screens.PipelineLoadReportMsg:
-		archetype, tldr, remote, comp := data.LoadReportSummary(msg.CareerOpsPath, msg.ReportPath)
-		m.pipeline.EnrichReport(msg.ReportPath, archetype, tldr, remote, comp)
+		archetype, tldr := data.LoadReportSummary(msg.GigOpsPath, msg.ReportPath)
+		m.pipeline.EnrichReport(msg.ReportPath, archetype, tldr)
 		return m, nil
 
 	case screens.PipelineUpdateStatusMsg:
-		err := data.UpdateApplicationStatus(msg.CareerOpsPath, msg.App, msg.NewStatus)
+		err := data.UpdateLeadStatus(msg.GigOpsPath, msg.Lead, msg.NewStatus)
 		if err != nil {
-			// Log the error but still reload data to keep UI consistent
 			fmt.Fprintf(os.Stderr, "WARN: status update failed: %v\n", err)
 		}
 		m.reloadPipelineData()
@@ -141,39 +140,36 @@ func (m appModel) View() string {
 }
 
 func main() {
-	pathFlag := flag.String("path", ".", "Path to career-ops directory")
+	pathFlag := flag.String("path", ".", "Path to gig-ops directory")
 	flag.Parse()
 
-	careerOpsPath := *pathFlag
+	gigOpsPath := *pathFlag
 
-	// Load applications
-	apps := data.ParseApplications(careerOpsPath)
-	if apps == nil {
-		fmt.Fprintf(os.Stderr, "Error: could not find applications.md in %s or %s/data/\n", careerOpsPath, careerOpsPath)
-		os.Exit(1)
+	leads := data.ParseLeads(gigOpsPath)
+	if leads == nil {
+		// Empty leads.md is OK — show an empty dashboard
+		leads = []model.Lead{}
 	}
 
-	// Compute metrics
-	metrics := data.ComputeMetrics(apps)
-	progressMetrics := data.ComputeProgressMetrics(apps)
+	metrics := data.ComputeMetrics(leads)
+	progressMetrics := data.ComputeProgressMetrics(leads)
 
-	// Batch-load all report summaries
 	t := theme.NewTheme("auto")
-	pm := screens.NewPipelineModel(t, apps, metrics, careerOpsPath, 120, 40)
+	pm := screens.NewPipelineModel(t, leads, metrics, gigOpsPath, 120, 40)
 
-	for _, app := range apps {
-		if app.ReportPath == "" {
+	for _, lead := range leads {
+		if lead.ReportPath == "" {
 			continue
 		}
-		archetype, tldr, remote, comp := data.LoadReportSummary(careerOpsPath, app.ReportPath)
-		if archetype != "" || tldr != "" || remote != "" || comp != "" {
-			pm.EnrichReport(app.ReportPath, archetype, tldr, remote, comp)
+		archetype, tldr := data.LoadReportSummary(gigOpsPath, lead.ReportPath)
+		if archetype != "" || tldr != "" {
+			pm.EnrichReport(lead.ReportPath, archetype, tldr)
 		}
 	}
 
 	m := appModel{
 		pipeline:        pm,
-		careerOpsPath:   careerOpsPath,
+		gigOpsPath:      gigOpsPath,
 		theme:           t,
 		progressMetrics: progressMetrics,
 	}

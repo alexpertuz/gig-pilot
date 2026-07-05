@@ -7,8 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/santifer/career-ops/dashboard/internal/model"
-	"github.com/santifer/career-ops/dashboard/internal/theme"
+	"github.com/santifer/gig-ops/dashboard/internal/model"
+	"github.com/santifer/gig-ops/dashboard/internal/theme"
 )
 
 // ProgressClosedMsg is emitted when the progress screen is dismissed.
@@ -289,28 +289,28 @@ func (m ProgressModel) renderRates() string {
 	valueStyle := lipgloss.NewStyle().Bold(true)
 	sepStyle := lipgloss.NewStyle().Foreground(m.theme.Overlay)
 
-	responseColor := m.rateColor(m.metrics.ResponseRate)
-	interviewColor := m.rateColor(m.metrics.InterviewRate)
-	offerColor := m.rateColor(m.metrics.OfferRate)
+	replyColor := m.rateColor(m.metrics.ReplyRate)
+	negotiateColor := m.rateColor(m.metrics.NegotiateRate)
+	winColor := m.rateColor(m.metrics.WinRate)
 
 	sep := sepStyle.Render("  |  ")
 
-	rates := labelStyle.Render("Response Rate: ") +
-		valueStyle.Foreground(responseColor).Render(fmt.Sprintf("%.1f%%", m.metrics.ResponseRate)) +
+	rates := labelStyle.Render("Reply Rate: ") +
+		valueStyle.Foreground(replyColor).Render(fmt.Sprintf("%.1f%%", m.metrics.ReplyRate)) +
 		sep +
-		labelStyle.Render("Interview Rate: ") +
-		valueStyle.Foreground(interviewColor).Render(fmt.Sprintf("%.1f%%", m.metrics.InterviewRate)) +
+		labelStyle.Render("Negotiate Rate: ") +
+		valueStyle.Foreground(negotiateColor).Render(fmt.Sprintf("%.1f%%", m.metrics.NegotiateRate)) +
 		sep +
-		labelStyle.Render("Offer Rate: ") +
-		valueStyle.Foreground(offerColor).Render(fmt.Sprintf("%.1f%%", m.metrics.OfferRate))
+		labelStyle.Render("Win Rate: ") +
+		valueStyle.Foreground(winColor).Render(fmt.Sprintf("%.1f%%", m.metrics.WinRate))
 
 	lines = append(lines, padStyle.Render(rates))
 
 	// Active summary
 	dimStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
 	activeInfo := dimStyle.Render(fmt.Sprintf(
-		"%d active applications | %d total offers",
-		m.metrics.ActiveApps, m.metrics.TotalOffers,
+		"%d active leads | %d won",
+		m.metrics.ActiveLeads, m.metrics.TotalWon,
 	))
 	lines = append(lines, padStyle.Render(activeInfo))
 
@@ -383,7 +383,7 @@ func (m ProgressModel) renderHelp() string {
 	keyStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Text)
 	descStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
 
-	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render("career-ops by santifer.io")
+	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render("gig-ops")
 
 	keys := keyStyle.Render("\u2191\u2193") + descStyle.Render(" scroll  ") +
 		keyStyle.Render("PgUp/Dn") + descStyle.Render(" page  ") +

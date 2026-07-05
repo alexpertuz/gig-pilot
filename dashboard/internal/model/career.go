@@ -1,31 +1,24 @@
 package model
 
-// CareerApplication represents a single job application from the tracker.
-type CareerApplication struct {
+// Lead represents a single freelance gig lead from the tracker.
+type Lead struct {
 	Number       int
-	Date         string
-	Company      string
-	Role         string
-	Status       string
+	Date         string // first seen (ISO date)
+	Source       string // r/forhire, remoteok, etc.
+	Poster       string // Reddit username or poster handle
+	Gig          string // title/brief description
+	Channel      string // dm/email/comment/apply
+	Status       string // new/contacted/replied/negotiating/won/lost/dropped
 	Score        float64
 	ScoreRaw     string
-	HasPDF       bool
+	Rate         string // agreed or proposed rate
+	NextFollowup string // ISO date for next follow-up
 	ReportPath   string
 	ReportNumber string
-	Notes        string
-	JobURL       string // URL of the original job posting
-	// Derived from Notes free-text (see data.deriveNoteFields)
-	Location    string  // "City, ST" when a US city+state appears in the notes
-	WorkMode    string  // "Remote" | "Hybrid" | "Full" (onsite), "" when unknown
-	PayRange    string  // first $-range found in the notes, e.g. "$140-210K"
-	PayMax      float64 // top of PayRange in dollars (sort key), 0 when unknown
-	PaySource   string  // "POSTED" when the JD listed it, "est" for estimates, "" unknown
-	LastContact string  // max YYYY-MM-DD found in notes (falls back to applied date)
+	JobURL       string
 	// Enrichment (lazy loaded from report)
-	Archetype    string
-	TlDr         string
-	Remote       string
-	CompEstimate string
+	Archetype string
+	TlDr      string
 }
 
 // PipelineMetrics holds aggregate stats for the pipeline dashboard.
@@ -34,11 +27,10 @@ type PipelineMetrics struct {
 	ByStatus   map[string]int
 	AvgScore   float64
 	TopScore   float64
-	WithPDF    int
 	Actionable int
 }
 
-// ProgressMetrics holds job search progress analytics.
+// ProgressMetrics holds gig pipeline progress analytics.
 type ProgressMetrics struct {
 	// Funnel
 	FunnelStages []FunnelStage
@@ -49,33 +41,33 @@ type ProgressMetrics struct {
 	// Timeline (weekly activity)
 	WeeklyActivity []WeekActivity
 
-	// Rates
-	ResponseRate  float64 // Responded / Applied
-	InterviewRate float64 // Interview / Applied
-	OfferRate     float64 // Offer / Applied
+	// Rates (relative to contacted)
+	ReplyRate      float64
+	NegotiateRate  float64
+	WinRate        float64
 
 	// Averages
 	AvgScore    float64
 	TopScore    float64
-	TotalOffers int
-	ActiveApps  int // not skip/rejected/discarded
+	TotalWon    int
+	ActiveLeads int // not lost/dropped
 }
 
-// FunnelStage represents one stage of the application funnel.
+// FunnelStage represents one stage of the gig funnel.
 type FunnelStage struct {
 	Label string
 	Count int
-	Pct   float64 // percentage of total
+	Pct   float64
 }
 
 // ScoreBucket represents a score range and its count.
 type ScoreBucket struct {
-	Label string // e.g., "4.5-5.0", "4.0-4.4", "3.5-3.9", "3.0-3.4", "<3.0"
+	Label string
 	Count int
 }
 
-// WeekActivity represents application activity for a given ISO week.
+// WeekActivity represents lead activity for a given ISO week.
 type WeekActivity struct {
-	Week  string // e.g., "2026-W14", "2026-W13"
+	Week  string
 	Count int
 }

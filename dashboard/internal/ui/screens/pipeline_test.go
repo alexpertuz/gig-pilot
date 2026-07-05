@@ -6,88 +6,86 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/santifer/career-ops/dashboard/internal/model"
-	"github.com/santifer/career-ops/dashboard/internal/theme"
+	"github.com/santifer/gig-ops/dashboard/internal/model"
+	"github.com/santifer/gig-ops/dashboard/internal/theme"
 )
 
 func tabIndexForFilter(t *testing.T, filter string) int {
 	t.Helper()
-
 	for i, tab := range pipelineTabs {
 		if tab.filter == filter {
 			return i
 		}
 	}
-
 	t.Fatalf("expected pipeline tabs to include filter %q", filter)
 	return -1
 }
 
 func TestWithReloadedDataPreservesStateAndSelection(t *testing.T) {
-	initialApps := []model.CareerApplication{
+	initialLeads := []model.Lead{
 		{
-			Company:    "Acme",
-			Role:       "Backend Engineer",
-			Status:     "Evaluated",
+			Source:     "r/forhire",
+			Gig:        "Build a React dashboard",
+			Status:     "new",
 			Score:      4.2,
-			ReportPath: "reports/001-acme.md",
+			ReportPath: "reports/001-react.md",
 		},
 		{
-			Company:    "Beta",
-			Role:       "Platform Engineer",
-			Status:     "Applied",
+			Source:     "remoteok",
+			Gig:        "Backend API dev",
+			Status:     "contacted",
 			Score:      4.6,
-			ReportPath: "reports/002-beta.md",
+			ReportPath: "reports/002-api.md",
 		},
 	}
 
 	pm := NewPipelineModel(
 		theme.NewTheme("catppuccin-mocha"),
-		initialApps,
-		model.PipelineMetrics{Total: len(initialApps)},
+		initialLeads,
+		model.PipelineMetrics{Total: len(initialLeads)},
 		"..",
 		120,
 		40,
 	)
-	pm.sortMode = sortCompany
+	pm.sortMode = sortSource
 	pm.activeTab = 0
 	pm.viewMode = "flat"
 	pm.applyFilterAndSort()
 	pm.cursor = 1
-	pm.reportCache["reports/002-beta.md"] = reportSummary{tldr: "cached"}
+	pm.reportCache["reports/002-api.md"] = reportSummary{tldr: "cached"}
 
-	refreshedApps := []model.CareerApplication{
-		initialApps[0],
-		initialApps[1],
+	refreshedLeads := []model.Lead{
+		initialLeads[0],
+		initialLeads[1],
 		{
-			Company:    "Gamma",
-			Role:       "AI Engineer",
-			Status:     "Interview",
+			Source:     "r/jobbit",
+			Gig:        "AI Engineer",
+			Status:     "negotiating",
 			Score:      4.8,
-			ReportPath: "reports/003-gamma.md",
+			ReportPath: "reports/003-ai.md",
 		},
 	}
 
-	reloaded := pm.WithReloadedData(refreshedApps, model.PipelineMetrics{Total: len(refreshedApps)})
+	reloaded := pm.WithReloadedData(refreshedLeads, model.PipelineMetrics{Total: len(refreshedLeads)})
 
-	if reloaded.sortMode != sortCompany {
-		t.Fatalf("expected sort mode %q, got %q", sortCompany, reloaded.sortMode)
+	if reloaded.sortMode != sortSource {
+		t.Fatalf("expected sort mode %q, got %q", sortSource, reloaded.sortMode)
 	}
 	if reloaded.viewMode != "flat" {
 		t.Fatalf("expected view mode to stay flat, got %q", reloaded.viewMode)
 	}
 	if got := len(reloaded.filtered); got != 3 {
-		t.Fatalf("expected 3 filtered apps after refresh, got %d", got)
+		t.Fatalf("expected 3 filtered leads after refresh, got %d", got)
 	}
-	if app, ok := reloaded.CurrentApp(); !ok || app.ReportPath != "reports/002-beta.md" {
-		t.Fatalf("expected selection to stay on beta app, got %+v (ok=%v)", app, ok)
+	if lead, ok := reloaded.CurrentApp(); !ok || lead.ReportPath != "reports/002-api.md" {
+		t.Fatalf("expected selection to stay on api lead, got %+v (ok=%v)", lead, ok)
 	}
-	if reloaded.reportCache["reports/002-beta.md"].tldr != "cached" {
+	if reloaded.reportCache["reports/002-api.md"].tldr != "cached" {
 		t.Fatal("expected cached report summaries to survive refresh")
 	}
 }
 
-func TestRenderAppLineIncludesDateColumn(t *testing.T) {
+func TestRenderAppLineIncludesDateAndSourceAndGig(t *testing.T) {
 	pm := NewPipelineModel(
 		theme.NewTheme("catppuccin-mocha"),
 		nil,
@@ -97,87 +95,86 @@ func TestRenderAppLineIncludesDateColumn(t *testing.T) {
 		40,
 	)
 
-	line := pm.renderAppLine(model.CareerApplication{
-		Number:  42,
-		Date:    "2026-04-13",
-		Company: "Anthropic",
-		Role:    "Forward Deployed Engineer",
-		Status:  "Applied",
-		Score:   4.5,
+	line := pm.renderAppLine(model.Lead{
+		Number: 42,
+		Date:   "2026-04-13",
+		Source: "r/forhire",
+		Gig:    "Build a TUI dashboard",
+		Status: "new",
+		Score:  4.5,
 	}, false)
 
 	if !strings.Contains(line, "2026-04-13") {
-		t.Fatalf("expected rendered line to include date column, got %q", line)
+		t.Fatalf("expected rendered line to include date, got %q", line)
 	}
 	if !strings.Contains(line, "#42") {
-		t.Fatalf("expected rendered line to include tracker number marker, got %q", line)
+		t.Fatalf("expected rendered line to include tracker number, got %q", line)
+	}
+	if !strings.Contains(line, "r/forhire") {
+		t.Fatalf("expected rendered line to include source, got %q", line)
 	}
 }
 
-func TestSearchFiltersByCompanyRoleAndNotes(t *testing.T) {
-	apps := []model.CareerApplication{
-		{Company: "Stripe", Role: "Backend Engineer", Status: "Evaluated", Score: 4.6, Notes: "payments infra"},
-		{Company: "Anthropic", Role: "AI Safety Engineer", Status: "Applied", Score: 4.8, Notes: "policy work"},
-		{Company: "Acme Corp", Role: "Senior PM, Voice AI", Status: "Evaluated", Score: 4.2, Notes: "Series B in Madrid"},
-		{Company: "Globex", Role: "Platform Engineer", Status: "Applied", Score: 3.9, Notes: "remote-first"},
+func TestSearchFiltersBySourceGigAndPoster(t *testing.T) {
+	leads := []model.Lead{
+		{Source: "r/forhire", Gig: "React developer needed", Status: "new", Score: 4.6, Poster: "u/techcorp"},
+		{Source: "remoteok", Gig: "Backend API engineer", Status: "contacted", Score: 4.8, Poster: "AcmeCorp"},
+		{Source: "r/jobbit", Gig: "Build AI chatbot", Status: "new", Score: 4.2, Poster: "u/startup"},
+		{Source: "workingnomads", Gig: "Platform engineer", Status: "replied", Score: 3.9, Poster: "GlobalTech"},
 	}
 
-	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), apps, model.PipelineMetrics{Total: len(apps)}, "..", 120, 40)
+	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), leads, model.PipelineMetrics{Total: len(leads)}, "..", 120, 40)
 	pm.activeTab = tabIndexForFilter(t, filterAll)
 
-	// Match by company substring (case-insensitive).
-	pm.searchQuery = "stripe"
+	pm.searchQuery = "forhire"
 	pm.applyFilterAndSort()
-	if len(pm.filtered) != 1 || pm.filtered[0].Company != "Stripe" {
-		t.Fatalf("expected 1 match for 'stripe', got %+v", pm.filtered)
+	if len(pm.filtered) != 1 || pm.filtered[0].Source != "r/forhire" {
+		t.Fatalf("expected 1 match for 'forhire', got %+v", pm.filtered)
 	}
 
-	// Match by role substring.
-	pm.searchQuery = "voice ai"
+	pm.searchQuery = "ai chatbot"
 	pm.applyFilterAndSort()
-	if len(pm.filtered) != 1 || pm.filtered[0].Company != "Acme Corp" {
-		t.Fatalf("expected 1 match for 'voice ai', got %+v", pm.filtered)
+	if len(pm.filtered) != 1 || pm.filtered[0].Source != "r/jobbit" {
+		t.Fatalf("expected 1 match for 'ai chatbot', got %+v", pm.filtered)
 	}
 
-	// Match by notes substring.
-	pm.searchQuery = "madrid"
+	pm.searchQuery = "acmecorp"
 	pm.applyFilterAndSort()
-	if len(pm.filtered) != 1 || pm.filtered[0].Company != "Acme Corp" {
-		t.Fatalf("expected 1 match for notes 'madrid', got %+v", pm.filtered)
+	if len(pm.filtered) != 1 || pm.filtered[0].Poster != "AcmeCorp" {
+		t.Fatalf("expected 1 match for poster 'acmecorp', got %+v", pm.filtered)
 	}
 
-	// Empty query restores everything.
 	pm.searchQuery = ""
 	pm.applyFilterAndSort()
-	if len(pm.filtered) != len(apps) {
-		t.Fatalf("expected empty query to restore all rows, got %d/%d", len(pm.filtered), len(apps))
+	if len(pm.filtered) != len(leads) {
+		t.Fatalf("expected empty query to restore all rows, got %d/%d", len(pm.filtered), len(leads))
 	}
 }
 
 func TestSearchComposesWithActiveTab(t *testing.T) {
-	apps := []model.CareerApplication{
-		{Company: "Stripe", Role: "Backend Engineer", Status: "Evaluated", Score: 4.6},
-		{Company: "Stripe", Role: "Frontend Engineer", Status: "Applied", Score: 4.5},
-		{Company: "Anthropic", Role: "AI Engineer", Status: "Applied", Score: 4.8},
+	leads := []model.Lead{
+		{Source: "r/forhire", Gig: "Backend dev", Status: "new", Score: 4.6},
+		{Source: "r/forhire", Gig: "Frontend dev", Status: "contacted", Score: 4.5},
+		{Source: "remoteok", Gig: "AI engineer", Status: "contacted", Score: 4.8},
 	}
 
-	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), apps, model.PipelineMetrics{Total: len(apps)}, "..", 120, 40)
-	pm.activeTab = tabIndexForFilter(t, filterApplied)
-	pm.searchQuery = "stripe"
+	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), leads, model.PipelineMetrics{Total: len(leads)}, "..", 120, 40)
+	pm.activeTab = tabIndexForFilter(t, filterContacted)
+	pm.searchQuery = "forhire"
 	pm.applyFilterAndSort()
 
-	if len(pm.filtered) != 1 || pm.filtered[0].Role != "Frontend Engineer" {
-		t.Fatalf("expected applied+stripe to leave only Frontend Engineer, got %+v", pm.filtered)
+	if len(pm.filtered) != 1 || pm.filtered[0].Gig != "Frontend dev" {
+		t.Fatalf("expected contacted+forhire to leave only Frontend dev, got %+v", pm.filtered)
 	}
 }
 
 func TestSearchIsCaseInsensitive(t *testing.T) {
-	apps := []model.CareerApplication{
-		{Company: "Anthropic", Role: "AI Engineer", Status: "Evaluated", Score: 4.8},
+	leads := []model.Lead{
+		{Source: "RemoteOK", Gig: "AI Engineer", Status: "new", Score: 4.8},
 	}
 
-	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), apps, model.PipelineMetrics{Total: len(apps)}, "..", 120, 40)
-	for _, q := range []string{"anthropic", "ANTHROPIC", "AnThRoPiC"} {
+	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), leads, model.PipelineMetrics{Total: len(leads)}, "..", 120, 40)
+	for _, q := range []string{"remoteok", "REMOTEOK", "ReMoTeOk"} {
 		pm.searchQuery = q
 		pm.applyFilterAndSort()
 		if len(pm.filtered) != 1 {
@@ -187,63 +184,57 @@ func TestSearchIsCaseInsensitive(t *testing.T) {
 }
 
 func TestSearchEnterCommitsAndEscClearsCommittedQuery(t *testing.T) {
-	apps := []model.CareerApplication{
-		{Company: "Stripe", Role: "Backend Engineer", Status: "Evaluated", Score: 4.6},
-		{Company: "Anthropic", Role: "AI Engineer", Status: "Evaluated", Score: 4.8},
+	leads := []model.Lead{
+		{Source: "r/forhire", Gig: "React dev", Status: "new", Score: 4.6},
+		{Source: "remoteok", Gig: "AI engineer", Status: "new", Score: 4.8},
 	}
 
-	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), apps, model.PipelineMetrics{Total: len(apps)}, "..", 120, 40)
+	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), leads, model.PipelineMetrics{Total: len(leads)}, "..", 120, 40)
 
-	// Open input and type "stripe".
 	pm, _ = pm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
 	if !pm.searchInput {
 		t.Fatal("expected `/` to open search input")
 	}
-	for _, r := range "stripe" {
+	for _, r := range "forhire" {
 		pm, _ = pm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 	}
-	if pm.searchQuery != "stripe" {
-		t.Fatalf("expected query to live-update to 'stripe', got %q", pm.searchQuery)
+	if pm.searchQuery != "forhire" {
+		t.Fatalf("expected query to live-update to 'forhire', got %q", pm.searchQuery)
 	}
-	if len(pm.filtered) != 1 || pm.filtered[0].Company != "Stripe" {
-		t.Fatalf("expected live filter to leave only Stripe, got %+v", pm.filtered)
+	if len(pm.filtered) != 1 || pm.filtered[0].Source != "r/forhire" {
+		t.Fatalf("expected live filter to leave only r/forhire, got %+v", pm.filtered)
 	}
 
-	// Enter commits — input closes, query stays.
 	pm, _ = pm.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if pm.searchInput {
 		t.Fatal("expected Enter to close input")
 	}
-	if pm.searchQuery != "stripe" {
+	if pm.searchQuery != "forhire" {
 		t.Fatalf("expected Enter to keep committed query, got %q", pm.searchQuery)
 	}
 
-	// Esc on a committed query clears the search and restores the full list.
 	pm, _ = pm.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	if pm.searchQuery != "" {
 		t.Fatalf("expected Esc to clear committed query, got %q", pm.searchQuery)
 	}
-	if len(pm.filtered) != len(apps) {
-		t.Fatalf("expected Esc to restore full list, got %d/%d", len(pm.filtered), len(apps))
+	if len(pm.filtered) != len(leads) {
+		t.Fatalf("expected Esc to restore full list, got %d/%d", len(pm.filtered), len(leads))
 	}
 }
 
 func TestSearchEscInInputCancelsAndClears(t *testing.T) {
-	// Use multiple rows so the test catches a regression where Esc clears the query
-	// but forgets to re-apply the filter — the visible count would stay at 1
-	// otherwise even though the underlying state went stale.
-	apps := []model.CareerApplication{
-		{Company: "Stripe", Role: "Backend Engineer", Status: "Evaluated", Score: 4.6},
-		{Company: "Globex", Role: "Platform Engineer", Status: "Evaluated", Score: 4.0},
-		{Company: "Anthropic", Role: "AI Engineer", Status: "Evaluated", Score: 4.8},
+	leads := []model.Lead{
+		{Source: "r/forhire", Gig: "React dev", Status: "new", Score: 4.6},
+		{Source: "r/jobbit", Gig: "Backend", Status: "new", Score: 4.0},
+		{Source: "remoteok", Gig: "AI engineer", Status: "new", Score: 4.8},
 	}
 
-	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), apps, model.PipelineMetrics{Total: len(apps)}, "..", 120, 40)
+	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), leads, model.PipelineMetrics{Total: len(leads)}, "..", 120, 40)
 	pm.searchInput = true
-	pm.searchQuery = "stri"
+	pm.searchQuery = "forhire"
 	pm.applyFilterAndSort()
 	if len(pm.filtered) != 1 {
-		t.Fatalf("setup expected 1 row matching 'stri', got %d", len(pm.filtered))
+		t.Fatalf("setup expected 1 row matching 'forhire', got %d", len(pm.filtered))
 	}
 
 	pm, _ = pm.Update(tea.KeyMsg{Type: tea.KeyEsc})
@@ -253,19 +244,19 @@ func TestSearchEscInInputCancelsAndClears(t *testing.T) {
 	if pm.searchQuery != "" {
 		t.Fatalf("expected Esc in input mode to clear in-progress query, got %q", pm.searchQuery)
 	}
-	if len(pm.filtered) != len(apps) {
-		t.Fatalf("expected Esc to re-expand filtered list to %d rows, got %d", len(apps), len(pm.filtered))
+	if len(pm.filtered) != len(leads) {
+		t.Fatalf("expected Esc to re-expand filtered list to %d rows, got %d", len(leads), len(pm.filtered))
 	}
 }
 
 func TestSearchResetsCursorOnQueryChange(t *testing.T) {
-	apps := []model.CareerApplication{
-		{Company: "Acme", Role: "Backend Engineer", Status: "Evaluated", Score: 4.0},
-		{Company: "Beta", Role: "Frontend Engineer", Status: "Evaluated", Score: 4.1},
-		{Company: "Gamma", Role: "AI Engineer", Status: "Evaluated", Score: 4.2},
+	leads := []model.Lead{
+		{Source: "r/forhire", Gig: "React dev", Status: "new", Score: 4.0},
+		{Source: "r/jobbit", Gig: "Backend", Status: "new", Score: 4.1},
+		{Source: "remoteok", Gig: "AI engineer", Status: "new", Score: 4.2},
 	}
 
-	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), apps, model.PipelineMetrics{Total: len(apps)}, "..", 120, 40)
+	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), leads, model.PipelineMetrics{Total: len(leads)}, "..", 120, 40)
 	pm.cursor = 2
 
 	pm, _ = pm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
@@ -275,96 +266,74 @@ func TestSearchResetsCursorOnQueryChange(t *testing.T) {
 		t.Fatalf("expected cursor to reset to 0 on query change, got %d", pm.cursor)
 	}
 	if pm.scrollOffset != 0 {
-		t.Fatalf("expected scrollOffset to reset to 0 on query change, got %d", pm.scrollOffset)
+		t.Fatalf("expected scrollOffset to reset to 0, got %d", pm.scrollOffset)
 	}
 }
 
 func TestSearchStatePreservedAcrossReload(t *testing.T) {
-	initial := []model.CareerApplication{
-		{Company: "Stripe", Role: "Backend", Status: "Evaluated", Score: 4.6},
-		{Company: "Acme", Role: "AI", Status: "Evaluated", Score: 4.0},
+	initial := []model.Lead{
+		{Source: "r/forhire", Gig: "React dev", Status: "new", Score: 4.6},
+		{Source: "remoteok", Gig: "AI engineer", Status: "contacted", Score: 4.0},
 	}
 
 	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), initial, model.PipelineMetrics{Total: len(initial)}, "..", 120, 40)
-	pm.searchQuery = "stripe"
+	pm.searchQuery = "forhire"
 	pm.applyFilterAndSort()
 
-	refreshed := append([]model.CareerApplication{}, initial...)
-	refreshed = append(refreshed, model.CareerApplication{Company: "Globex", Role: "Platform", Status: "Applied", Score: 4.3})
+	refreshed := append([]model.Lead{}, initial...)
+	refreshed = append(refreshed, model.Lead{Source: "r/jobbit", Gig: "Platform dev", Status: "replied", Score: 4.3})
 
 	reloaded := pm.WithReloadedData(refreshed, model.PipelineMetrics{Total: len(refreshed)})
 
-	if reloaded.searchQuery != "stripe" {
+	if reloaded.searchQuery != "forhire" {
 		t.Fatalf("expected refresh to preserve search query, got %q", reloaded.searchQuery)
 	}
-	if len(reloaded.filtered) != 1 || reloaded.filtered[0].Company != "Stripe" {
+	if len(reloaded.filtered) != 1 || reloaded.filtered[0].Source != "r/forhire" {
 		t.Fatalf("expected refresh+search to keep filter applied, got %+v", reloaded.filtered)
 	}
 }
 
-func TestRejectedAndDiscardedTabsFilterCorrectly(t *testing.T) {
-	apps := []model.CareerApplication{
-		{
-			Company:    "Acme",
-			Role:       "Backend Engineer",
-			Status:     "Rejected",
-			Score:      3.4,
-			ReportPath: "reports/001-acme.md",
-		},
-		{
-			Company:    "Beta",
-			Role:       "Platform Engineer",
-			Status:     "Discarded",
-			Score:      2.1,
-			ReportPath: "reports/002-beta.md",
-		},
-		{
-			Company:    "Gamma",
-			Role:       "AI Engineer",
-			Status:     "Applied",
-			Score:      4.6,
-			ReportPath: "reports/003-gamma.md",
-		},
+func TestLostAndDroppedTabsFilterCorrectly(t *testing.T) {
+	leads := []model.Lead{
+		{Source: "r/forhire", Gig: "React dev", Status: "lost", Score: 3.4, ReportPath: "reports/001.md"},
+		{Source: "remoteok", Gig: "AI engineer", Status: "dropped", Score: 2.1, ReportPath: "reports/002.md"},
+		{Source: "r/jobbit", Gig: "Backend dev", Status: "contacted", Score: 4.6, ReportPath: "reports/003.md"},
 	}
 
 	pm := NewPipelineModel(
 		theme.NewTheme("catppuccin-mocha"),
-		apps,
-		model.PipelineMetrics{Total: len(apps)},
+		leads,
+		model.PipelineMetrics{Total: len(leads)},
 		"..",
 		120,
 		40,
 	)
 
-	pm.activeTab = tabIndexForFilter(t, filterRejected)
+	pm.activeTab = tabIndexForFilter(t, filterLost)
 	pm.applyFilterAndSort()
-	if len(pm.filtered) != 1 || pm.filtered[0].Status != "Rejected" {
-		t.Fatalf("expected rejected tab to isolate rejected rows, got %+v", pm.filtered)
+	if len(pm.filtered) != 1 || pm.filtered[0].Status != "lost" {
+		t.Fatalf("expected lost tab to isolate lost rows, got %+v", pm.filtered)
 	}
 
-	pm.activeTab = tabIndexForFilter(t, filterDiscarded)
+	pm.activeTab = tabIndexForFilter(t, filterDropped)
 	pm.applyFilterAndSort()
-	if len(pm.filtered) != 1 || pm.filtered[0].Status != "Discarded" {
-		t.Fatalf("expected discarded tab to isolate discarded rows, got %+v", pm.filtered)
+	if len(pm.filtered) != 1 || pm.filtered[0].Status != "dropped" {
+		t.Fatalf("expected dropped tab to isolate dropped rows, got %+v", pm.filtered)
 	}
 }
 
-// Regression: with no committed search query, Esc must NOT close the screen.
-// The help bar advertises only `q quit`, so Esc quitting silently was a bug
-// that surfaced as accidental exits when users hit Esc to "back out" of the UI.
 func TestEscWithoutQueryIsNoOp(t *testing.T) {
-	apps := []model.CareerApplication{
-		{Company: "Stripe", Role: "Backend Engineer", Status: "Evaluated", Score: 4.6},
+	leads := []model.Lead{
+		{Source: "r/forhire", Gig: "React dev", Status: "new", Score: 4.6},
 	}
 
-	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), apps, model.PipelineMetrics{Total: len(apps)}, "..", 120, 40)
+	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), leads, model.PipelineMetrics{Total: len(leads)}, "..", 120, 40)
 	if pm.searchQuery != "" {
 		t.Fatalf("setup expected empty search query, got %q", pm.searchQuery)
 	}
 
 	pm, cmd := pm.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	if cmd != nil {
-		// PipelineClosedMsg used to fire here; ensure it doesn't anymore.
 		if msg := cmd(); msg != nil {
 			if _, ok := msg.(PipelineClosedMsg); ok {
 				t.Fatalf("expected Esc with no query to be a no-op, got PipelineClosedMsg")
@@ -377,24 +346,19 @@ func TestEscWithoutQueryIsNoOp(t *testing.T) {
 	}
 }
 
-// Regression: typing during search input must not synchronously fan out to
-// loadCurrentReport. Reading reports per keystroke caused visible UI lag, so
-// the load is deferred to commit (Enter) / cancel (Esc) instead.
 func TestSearchTypingDoesNotLoadReports(t *testing.T) {
-	apps := []model.CareerApplication{
-		{Company: "Stripe", Role: "Backend Engineer", Status: "Evaluated", Score: 4.6, ReportPath: "reports/001-stripe.md"},
-		{Company: "Anthropic", Role: "AI Engineer", Status: "Evaluated", Score: 4.8, ReportPath: "reports/002-anthropic.md"},
+	leads := []model.Lead{
+		{Source: "r/forhire", Gig: "React dev", Status: "new", Score: 4.6, ReportPath: "reports/001.md"},
+		{Source: "remoteok", Gig: "AI engineer", Status: "new", Score: 4.8, ReportPath: "reports/002.md"},
 	}
 
-	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), apps, model.PipelineMetrics{Total: len(apps)}, "..", 120, 40)
-
+	pm := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), leads, model.PipelineMetrics{Total: len(leads)}, "..", 120, 40)
 	pm, _ = pm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
 	if !pm.searchInput {
 		t.Fatal("expected `/` to open search input")
 	}
 
-	// Typing must not trigger PipelineLoadReportMsg.
-	for _, r := range "stri" {
+	for _, r := range "forhire" {
 		var cmd tea.Cmd
 		pm, cmd = pm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 		if cmd != nil {
@@ -406,7 +370,6 @@ func TestSearchTypingDoesNotLoadReports(t *testing.T) {
 		}
 	}
 
-	// Backspace must not trigger PipelineLoadReportMsg either.
 	pm, cmd := pm.Update(tea.KeyMsg{Type: tea.KeyBackspace})
 	if cmd != nil {
 		if msg := cmd(); msg != nil {
@@ -416,7 +379,6 @@ func TestSearchTypingDoesNotLoadReports(t *testing.T) {
 		}
 	}
 
-	// Ctrl+U must not trigger PipelineLoadReportMsg either.
 	pm, cmd = pm.Update(tea.KeyMsg{Type: tea.KeyCtrlU})
 	if cmd != nil {
 		if msg := cmd(); msg != nil {
@@ -427,12 +389,11 @@ func TestSearchTypingDoesNotLoadReports(t *testing.T) {
 	}
 }
 
-func previewModelWith(t *testing.T, app model.CareerApplication) PipelineModel {
+func previewModelWith(t *testing.T, lead model.Lead) PipelineModel {
 	t.Helper()
-
 	pm := NewPipelineModel(
 		theme.NewTheme("catppuccin-mocha"),
-		[]model.CareerApplication{app},
+		[]model.Lead{lead},
 		model.PipelineMetrics{Total: 1},
 		"..",
 		120,
@@ -443,81 +404,69 @@ func previewModelWith(t *testing.T, app model.CareerApplication) PipelineModel {
 	return pm
 }
 
-func TestPreviewKeepsDiscardReasonWhenTlDrIsCached(t *testing.T) {
-	app := model.CareerApplication{
-		Company:    "Acme",
-		Role:       "Backend Engineer",
-		Status:     "Descartado 2026-03-12",
-		Notes:      "took too long to respond",
-		ReportPath: "reports/001-acme.md",
+func TestPreviewShowsPosterChannelRate(t *testing.T) {
+	lead := model.Lead{
+		Source:  "r/forhire",
+		Gig:     "Build a React app",
+		Status:  "contacted",
+		Score:   4.2,
+		Poster:  "u/techcorp",
+		Channel: "dm",
+		Rate:    "$75/hr",
 	}
-	pm := previewModelWith(t, app)
-	pm.reportCache[app.ReportPath] = reportSummary{tldr: "great team, fast pace"}
+	pm := previewModelWith(t, lead)
 
 	preview := pm.renderPreview()
 
-	if !strings.Contains(preview, "great team, fast pace") {
-		t.Fatalf("expected preview to keep the cached TL;DR, got %q", preview)
+	if !strings.Contains(preview, "u/techcorp") {
+		t.Fatalf("expected preview to show poster, got %q", preview)
 	}
-	// Regression for #787: before the Outcome line, a cached TL;DR replaced the
-	// notes entirely and the discard reason disappeared from the preview.
-	if !strings.Contains(preview, "took too long to respond") {
-		t.Fatalf("expected preview to keep the discard reason alongside the TL;DR, got %q", preview)
+	if !strings.Contains(preview, "dm") {
+		t.Fatalf("expected preview to show channel, got %q", preview)
 	}
-	if !strings.Contains(preview, "Descartado 2026-03-12") {
-		t.Fatalf("expected preview to show the closing status, got %q", preview)
+	if !strings.Contains(preview, "$75/hr") {
+		t.Fatalf("expected preview to show rate, got %q", preview)
 	}
 }
 
-func TestPreviewOutcomeShownWithoutReportSummary(t *testing.T) {
-	pm := previewModelWith(t, model.CareerApplication{
-		Company: "Beta",
-		Role:    "Platform Engineer",
-		Status:  "SKIP",
-		Notes:   "geo blocker",
-	})
+func TestPreviewShowsReportCacheWhenAvailable(t *testing.T) {
+	lead := model.Lead{
+		Source:     "remoteok",
+		Gig:        "AI platform engineer",
+		Status:     "negotiating",
+		Score:      4.8,
+		ReportPath: "reports/001.md",
+	}
+	pm := previewModelWith(t, lead)
+	pm.reportCache[lead.ReportPath] = reportSummary{
+		archetype: "Contractor",
+		tldr:      "solid scope, fair budget",
+	}
 
 	preview := pm.renderPreview()
 
-	if !strings.Contains(preview, "Outcome:") || !strings.Contains(preview, "geo blocker") {
-		t.Fatalf("expected outcome line with notes for skipped app, got %q", preview)
+	if !strings.Contains(preview, "Contractor") {
+		t.Fatalf("expected preview to show archetype, got %q", preview)
 	}
-	if strings.Count(preview, "geo blocker") != 1 {
-		t.Fatalf("expected notes to appear exactly once, got %q", preview)
+	if !strings.Contains(preview, "solid scope, fair budget") {
+		t.Fatalf("expected preview to show TL;DR, got %q", preview)
 	}
 }
 
-func TestPreviewOutcomeOmittedForActiveApps(t *testing.T) {
-	app := model.CareerApplication{
-		Company:    "Gamma",
-		Role:       "AI Engineer",
-		Status:     "Applied 2026-04-01",
-		Notes:      "warm intro via referral",
-		ReportPath: "reports/003-gamma.md",
+func TestPreviewOutcomeOmittedForActiveLeads(t *testing.T) {
+	lead := model.Lead{
+		Source:     "r/forhire",
+		Gig:        "React dev",
+		Status:     "replied",
+		Score:      4.5,
+		ReportPath: "reports/002.md",
 	}
-	pm := previewModelWith(t, app)
-	pm.reportCache[app.ReportPath] = reportSummary{tldr: "strong fit"}
+	pm := previewModelWith(t, lead)
+	pm.reportCache[lead.ReportPath] = reportSummary{tldr: "strong fit"}
 
 	preview := pm.renderPreview()
 
 	if strings.Contains(preview, "Outcome:") {
-		t.Fatalf("expected no outcome line for an active app, got %q", preview)
-	}
-}
-
-func TestPreviewOutcomeForStatusWithoutNotes(t *testing.T) {
-	pm := previewModelWith(t, model.CareerApplication{
-		Company: "Delta",
-		Role:    "SRE",
-		Status:  "**Rejected** 2026-05-02",
-	})
-
-	preview := pm.renderPreview()
-
-	if !strings.Contains(preview, "Rejected 2026-05-02") {
-		t.Fatalf("expected outcome to show the bare closing status, got %q", preview)
-	}
-	if strings.Contains(preview, "Loading preview...") {
-		t.Fatalf("expected outcome line to replace the loading placeholder, got %q", preview)
+		t.Fatalf("expected no outcome line for an active lead, got %q", preview)
 	}
 }
