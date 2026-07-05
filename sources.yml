@@ -13,6 +13,7 @@ title_filter:
     - "needed"
     - "seeking"
     - "wanted"
+    - "on demand"
     - "freelance"
     - "freelancer"
     - "contract"
@@ -71,6 +72,21 @@ gig_boards:
     search_queries:
       - "[task]"
       - "[hiring]"
+
+  # r/programacion — Spanish-language programming community (ES-locale demand).
+  - name: "r/programacion"
+    provider: reddit
+    subreddit: programacion
+
+  # r/ycombinator — startup founders posting "looking for"/"on demand" needs.
+  - name: "r/ycombinator"
+    provider: reddit
+    subreddit: ycombinator
+
+  # r/beermoney — small paid tasks / on-demand microgigs.
+  - name: "r/beermoney"
+    provider: reddit
+    subreddit: beermoney
 
   # Remote job boards — mostly FULL-TIME roles. Disabled by default because they
   # flood the inbox with non-freelance jobs. Enable + rely on title_filter if you
