@@ -1459,7 +1459,8 @@ try {
   const pipelineFields = pipelineRow.split('|').map(part => part.trim());
   if (
     pendingLines.length === 1 &&
-    pipelineFields.length === 3 &&
+    pipelineFields.length === 4 &&
+    pipelineFields[3] === 'relevance:0' &&
     pipelineFields[0] === '- [ ] https://jobs.example.com/123%7Cevil' &&
     !pipelineRow.includes('\n') &&
     !pipelineRow.includes('\t') &&
@@ -1544,23 +1545,25 @@ console.log('\n11b. Title filter — acronym word boundaries');
 try {
   const { buildTitleFilter, compileKeyword } = await import(pathToFileURL(join(ROOT, 'scan.mjs')).href);
 
-  // Short all-letter acronyms match on WORD BOUNDARIES, not as substrings.
+  // Positive keywords no longer gate `keep` — they score `relevance`. Short
+  // all-letter acronyms still match on WORD BOUNDARIES, not as substrings.
   const cooFilter = buildTitleFilter({ positive: ['coo'] });
-  if (cooFilter('Chief Operating Officer (COO)') === true) pass('"COO" positive matches the standalone token in a title');
-  else fail('"COO" should match a title containing the standalone token COO');
-  if (cooFilter('Sales Coordinator') === false) pass('"COO" positive does NOT match "Coordinator" (no mid-word match)');
-  else fail('"COO" must not match "Coordinator"');
+  if (cooFilter('Chief Operating Officer (COO)').relevance === 1) pass('"COO" positive scores relevance on the standalone token');
+  else fail('"COO" should score relevance on a title containing the standalone token COO');
+  const coordinator = cooFilter('Sales Coordinator');
+  if (coordinator.keep === true && coordinator.relevance === 0) pass('"COO" positive does NOT match "Coordinator" (kept, relevance 0)');
+  else fail('"COO" must not score relevance on "Coordinator", but must still be kept');
 
   // An acronym used as a NEGATIVE keyword must not knock out an unrelated word.
   const negFilter = buildTitleFilter({ positive: [], negative: ['coo'] });
-  if (negFilter('Marketing Coordinator') === true) pass('negative "COO" does not reject "Coordinator"');
+  if (negFilter('Marketing Coordinator').keep === true) pass('negative "COO" does not reject "Coordinator"');
   else fail('negative "COO" wrongly rejected "Coordinator"');
-  if (negFilter('Group COO') === false) pass('negative "COO" still rejects a standalone "COO" title');
+  if (negFilter('Group COO').keep === false) pass('negative "COO" still rejects a standalone "COO" title');
   else fail('negative "COO" should reject "Group COO"');
 
   // Multi-word phrases and non-letter keywords keep permissive substring matching.
   const phraseFilter = buildTitleFilter({ positive: ['head of'] });
-  if (phraseFilter('Head of Finance & Strategy') === true) pass('multi-word "head of" still matches by substring');
+  if (phraseFilter('Head of Finance & Strategy').relevance === 1) pass('multi-word "head of" still matches by substring');
   else fail('"head of" should substring-match "Head of Finance & Strategy"');
 
   // compileKeyword is exported and directly testable.

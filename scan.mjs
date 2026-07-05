@@ -134,15 +134,25 @@ export function compileKeyword(kw) {
   return (lower) => lower.includes(kw);
 }
 
+// Returns a scorer: (title) => { keep, relevance, matched }
+//   - keep:      false ONLY when a negative keyword is present. Missing positive
+//                keywords no longer rejects a post — it just scores 0 relevance.
+//   - relevance: how many positive keywords the title hit (higher = more on-topic).
+//   - matched:   the positive keywords that hit, surfaced into the pipeline so the
+//                LLM can weigh them when ranking later.
 export function buildTitleFilter(titleFilter) {
-  const positive = (titleFilter?.positive || []).map(k => k.toLowerCase()).map(compileKeyword);
+  const positive = (titleFilter?.positive || [])
+    .map(k => k.toLowerCase())
+    .map(kw => ({ kw, test: compileKeyword(kw) }));
   const negative = (titleFilter?.negative || []).map(k => k.toLowerCase()).map(compileKeyword);
 
   return (title) => {
     const lower = (title || '').toLowerCase();
-    const hasPositive = positive.length === 0 || positive.some(m => m(lower));
-    const hasNegative = negative.some(m => m(lower));
-    return hasPositive && !hasNegative;
+    if (negative.some(m => m(lower))) {
+      return { keep: false, relevance: 0, matched: [] };
+    }
+    const matched = positive.filter(p => p.test(lower)).map(p => p.kw);
+    return { keep: true, relevance: matched.length, matched };
   };
 }
 
@@ -496,7 +506,15 @@ export function formatPipelineOffer(offer) {
   const url = sanitizePipelineUrl(offer.url);
   const company = sanitizeMarkdownField(offer.company);
   const title = sanitizeMarkdownField(offer.title);
-  return `- [ ] ${url} | ${company} | ${title}`;
+  // Trailing relevance signal: keyword-hit count + which positive keywords hit.
+  // Additive 4th field — `/pipeline` reads the URL (field 1) and Company/Role
+  // (fields 2–3), so this is safe to append and gives the LLM a ranking hint.
+  const relevance = Number.isFinite(offer.relevance) ? offer.relevance : 0;
+  const matched = Array.isArray(offer.matchedKeywords) ? offer.matchedKeywords : [];
+  const signal = matched.length
+    ? `relevance:${relevance} [${sanitizeMarkdownField(matched.join(', '))}]`
+    : `relevance:${relevance}`;
+  return `- [ ] ${url} | ${company} | ${title} | ${signal}`;
 }
 
 export function formatScanHistoryRow(offer, date, status = 'added') {
@@ -868,7 +886,9 @@ async function main() {
       totalFound += jobs.length;
 
       for (const job of jobs) {
-        if (!titleFilter(job.title)) {
+        const titleMatch = titleFilter(job.title);
+        if (!titleMatch.keep) {
+          // Only negative keywords reject now (renamed counter below).
           totalFilteredTitle++;
           continue;
         }
@@ -888,7 +908,11 @@ async function main() {
           totalDupes++;
           continue;
         }
-        const key = `${job.company.toLowerCase()}::${job.title.toLowerCase()}`;
+        // Reddit (and other demand-side providers) have no `company` — use the
+        // poster as the identity. Guard both fields so a missing one can never
+        // throw and abort the whole source's job loop.
+        const identity = (job.company ?? job.poster ?? '').toLowerCase();
+        const key = `${identity}::${(job.title ?? '').toLowerCase()}`;
         if (seenCompanyRoles.has(key)) {
           totalDupes++;
           continue;
@@ -905,6 +929,8 @@ async function main() {
           source: sourceName,
           tracked: Boolean(careersUrlDomain),
           careersUrlDomain,
+          relevance: titleMatch.relevance,
+          matchedKeywords: titleMatch.matched,
         });
       }
     } catch (err) {
@@ -933,6 +959,12 @@ async function main() {
       verifiedOffers = [...verifiedOffers, ...migratedOffers];
     }
   }
+
+  // Rank: positive-keyword hits first (most on-topic at the top of the inbox),
+  // ties keep provider order. Stable because Array.sort is stable in Node.
+  verifiedOffers = [...verifiedOffers].sort(
+    (a, b) => (b.relevance ?? 0) - (a.relevance ?? 0),
+  );
 
   // 6. Write results
   if (!dryRun && verifiedOffers.length > 0) {
@@ -978,7 +1010,7 @@ async function main() {
   console.log(`Companies scanned:     ${summaryCompanies}`);
   if (summaryBoards > 0) console.log(`Job boards scanned:    ${summaryBoards}`);
   console.log(`Total jobs found:      ${totalFound}`);
-  console.log(`Filtered by title:     ${totalFilteredTitle} removed`);
+  console.log(`Rejected (neg. words): ${totalFilteredTitle} removed`);
   console.log(`Filtered by location:  ${totalFilteredLocation} removed`);
   console.log(`Filtered by budget:   ${totalFilteredBudget} removed`);
   console.log(`Filtered by content:  ${totalFilteredContent} removed`);
@@ -1015,7 +1047,7 @@ async function main() {
   if (verifiedOffers.length > 0) {
     console.log('\nNew offers:');
     for (const o of verifiedOffers) {
-      console.log(`  + ${o.company} | ${o.title} | ${o.location || 'N/A'}`);
+      console.log(`  + ${o.company ?? o.poster ?? '—'} | ${o.title} | ${o.location || 'N/A'}`);
     }
     if (dryRun) {
       console.log('\n(dry run — run without --dry-run to save results)');

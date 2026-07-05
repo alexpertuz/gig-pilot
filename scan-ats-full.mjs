@@ -255,7 +255,7 @@ async function main() {
         for (const job of jobs) {
           if (!job.url || !job.title) continue;
           if (!job.postedAt || job.postedAt < cutoff) continue;
-          if (!titleFilter(job.title)) continue;
+          if (!titleFilter(job.title).keep) continue;
           if (!locationFilter(job.location)) continue;
           if (seenUrls.has(job.url)) continue;
           seenUrls.add(job.url); // intra-scan dedup
