@@ -1,7 +1,8 @@
 # Design: Port three career-ops pieces to the gig/leads model
 
 **Date:** 2026-07-05
-**Status:** Approved (design), pending implementation plan
+**Status:** Approved. Units 1 & 2 in implementation; **Unit 3 deferred** (see
+"Unit 3 — DEFERRED" below).
 
 ## Goal
 
@@ -68,47 +69,56 @@ Reads `data/scan-history.tsv` and flags near-identical postings seen across
 multiple scans — a strong "still-open / repeatedly-posting" signal for gigs.
 
 **Keying decision (approved):** grouping identity =
-`company || poster-derived-from-reddit-URL`. When that identity is empty, fall
-back to **fuzzy title within the same portal** (via `role-matcher.roleFuzzyMatch`).
-This catches Reddit reposts, whose `company` column is empty. Rationale: Reddit
-is the primary demand-side source; company-only keying (upstream behavior) would
-detect zero Reddit reposts.
+`company || poster-derived-from-URL`. When that identity is empty, fall back to
+**fuzzy title within the same portal/subreddit bucket** (via
+`role-matcher.roleFuzzyMatch`). This catches Reddit reposts, whose `company`
+column is empty. Rationale: Reddit is the primary demand-side source; company-only
+keying (upstream behavior) would detect zero Reddit reposts.
+
+**Data reality (confirmed against `scan-history.tsv`):** Reddit rows store a
+post permalink (`/r/<sub>/comments/<id>/<slug>`), which does **not** contain the
+poster — the subreddit is the only stable identity in the URL. So
+`posterFromUrl` is best-effort (extracts `/u/<name>` or `/user/<name>` if a
+provider ever stores an author URL; else `''`), and the effective Reddit
+grouping is `r/<sub>` + fuzzy title. This still fully delivers the intent.
 
 **Adaptation from upstream:**
-- Add a `posterFromUrl(url)` helper for `reddit.com/u|user/<name>` and
-  comment/post permalinks; fall through to `''` for non-Reddit URLs.
-- Grouping key builder: `company || posterFromUrl(url) || fuzzy-title-bucket`.
+- Add `posterFromUrl(url)` (best-effort `/u|user/<name>`) and
+  `redditBucketFromUrl(url)` (`r/<sub>` or `''`) helpers.
+- Grouping key builder: `identity(company||poster) || redditBucket || portal`,
+  with fuzzy-title clustering inside each bucket (existing upstream logic).
+- Add a `GIG_OPS_SCAN_HISTORY` env override for the history path so the tool is
+  testable against a fixture (default stays `data/scan-history.tsv`).
 - Report wording: "gig reposted" rather than "role reposted".
 
 **Dependencies:** `role-matcher.mjs` (present), `data/scan-history.tsv`.
 **Interface:** CLI, prints grouped repost report; exit 0 always (informational).
 
-### Unit 3 — `followup-seed.mjs` (+ new `tracker-parse.mjs`, test)
+### Unit 3 — `followup-seed.mjs` — DEFERRED (precondition unmet)
 
-Seeds a `next_followup` date into the tracker the moment a lead reaches
-`contacted`, so follow-ups are never "born dead" (missing a due date).
+**Original intent:** seed a `next_followup` date into the tracker the moment a
+lead reaches `contacted`, so follow-ups are never "born dead".
 
-**Scope decision (approved):** seed only. Trigger retargeted `Applied` →
-`contacted`; reads `data/leads.md`. Does **not** rewrite `followup-cadence.mjs`'s
-career model — that debt is noted above and left for a separate pass.
+**Why deferred (discovered during plan file-mapping, 2026-07-05):** the
+precondition — a `leads.md` tracker carrying the leads schema with a
+`next_followup` column — does not exist. Actual migration state:
 
-**New dependency:** a small `tracker-parse.mjs` exporting `resolveColumns` and
-`parseTrackerRow`, tuned to the `leads.md` column order documented in `AGENTS.md`
-(`num, date, source, poster, gig, channel, status, score, rate, next_followup,
-report`). This is a focused parsing helper, not a port of the whole upstream
-tracker stack.
+- `scan.mjs` is migrated to the gig/leads contract (writes `poster`,
+  `next_followup`, etc.).
+- `tracker.mjs` and `followup-cadence.mjs` still parse the **career schema**: a
+  markdown pipe-table `[num, date, company, role, score, status, pdf, report,
+  notes]`. Only the *filename* was renamed to `leads.md`; there is **no
+  `next_followup` column** in what they read.
+- `data/leads.md` does not exist yet (only `data/pipeline.md`).
 
-**Adaptation from upstream:**
-- Env vars `CAREER_OPS_*` → `GIG_OPS_*`.
-- Tracker path `applications.md` → `data/leads.md`.
-- `follow-ups.md` row columns → lead-oriented (`num, leadNum, date, poster, gig,
-  channel, contact, notes`).
-- Status trigger `applied` → `contacted`; terminology `appNum` → `leadNum`.
-- Lock-file prefix `career-ops` → `gig-ops`.
+`followup-seed` has no leads-schema tracker to seed into. Landing it would
+require first migrating `tracker.mjs` + `followup-cadence.mjs` to the leads TSV
+schema — a larger effort the approved scope explicitly excludes.
 
-**Interface:** CLI; scans `leads.md`, seeds missing `next_followup` for
-`contacted` leads, appends to `data/follow-ups.md`. Idempotent (never
-double-seeds an already-seeded lead).
+**Follow-up path:** revisit once the tracker/follow-up subsystem is migrated to
+the leads schema. That migration is a prerequisite and gets its own spec/plan.
+Unit 3 then becomes: port `followup-seed` + a leads-native tracker parser,
+trigger on `contacted`, write `data/follow-ups.md`.
 
 ## Testing
 
@@ -132,4 +142,6 @@ double-seeds an already-seeded lead).
 
 Next.js web dashboard; `process-quality`; `_trust-validator`; `match-star`;
 `classify-tier`; `_registry` (no duplication to remove yet); rewriting
-`followup-cadence.mjs` / the lingering `Applied`/`Interview` status references.
+`followup-cadence.mjs` / the lingering `Applied`/`Interview` status references;
+migrating `tracker.mjs` + `followup-cadence.mjs` to the leads TSV schema (the
+prerequisite that blocks Unit 3 — its own future spec/plan).
