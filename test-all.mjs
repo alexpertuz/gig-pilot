@@ -159,6 +159,7 @@ const scripts = [
   { name: 'updater-migration-tests.mjs', expectExit: 0 },
   { name: 'tracker-columns-tests.mjs', expectExit: 0 },
   { name: 'agent-inbox.test.mjs', expectExit: 0 }, // self-isolates via GIG_OPS_INBOX temp file
+  { name: 'detect-reposts.test.mjs', expectExit: 0 }, // self-isolates via GIG_OPS_SCAN_HISTORY temp fixture
   { name: 'validate-portals.mjs --file templates/portals.example.yml', expectExit: 0 },
   // Missing-file run: must exit 0 gracefully and hit no network. Do not use the
   // default sources.yml because end-user workspaces often have a real user-layer
