@@ -58,6 +58,7 @@ Then copy `config/profile.example.yml` → `config/profile.yml` and fill in the 
 | `/followup` | `modes/followup.md` | Follow-up cadence |
 | `/patterns` | `modes/patterns.md` | Analyze your win/loss patterns |
 | `/deep` | `modes/deep.md` | Deep-dive research on a poster or company |
+| `/agent-inbox` | `modes/agent-inbox.md` | Work a triage queue of gigs pending a decision |
 
 ## The pipeline flow
 
