@@ -36,6 +36,7 @@ import path from 'path';
 import yaml from 'js-yaml';
 
 import { makeHttpCtx } from './providers/_http.mjs';
+import { scoreAll } from './score-heuristic.mjs';
 
 const parseYaml = yaml.load;
 
@@ -1053,6 +1054,18 @@ async function main() {
       console.log('\n(dry run — run without --dry-run to save results)');
     } else {
       console.log(`\nResults saved to ${PIPELINE_PATH} and ${SCAN_HISTORY_PATH}`);
+      try {
+        const scored = await scoreAll({
+          pipelinePath: PIPELINE_PATH,
+          scanHistoryPath: SCAN_HISTORY_PATH,
+          profilePath: 'config/profile.yml',
+          scoresPath: 'data/scores.json',
+        });
+        console.log(`Scored ${Object.keys(scored).length} gigs → data/scores.json`);
+      } catch (e) {
+        // Scoring must never fail a scan.
+        console.error('Heuristic scoring failed (non-fatal):', e.message);
+      }
     }
   }
 
