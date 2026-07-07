@@ -36,9 +36,12 @@ const JOB_SEEKER = [
   'looking for side', 'need a job', 'hire me', 'i am available for', 'seeking work',
   'looking for people ready to work', 'willing to learn',
 ];
+// High-precision "get-rich-quick" markers only. Bare day-rate patterns ("/day",
+// "per day") are intentionally excluded — a freelance day rate is legitimate and
+// must never hard-decline a real gig.
 const SCAM = [
-  'daily income', 'turn your charm', '% from each', 'earn 50', 'earn $', 'copy paste',
-  'copy-paste', 'per day', '/day', 'passive income', 'no experience needed',
+  'daily income', 'turn your charm', '% from each', 'earn 50', 'copy paste',
+  'copy-paste', 'passive income',
 ];
 
 const lc = (s) => (s || '').toLowerCase();
@@ -170,4 +173,102 @@ export function scoreGig(gig, profile = {}) {
   else verdict = 'DECLINE';
 
   return { score, blocks, reasons, redFlags, verdict, budget };
+}
+
+const PIPE_LINE = /^- \[( |x)\]\s+(.+)$/;
+
+function parsePipelineLines(text) {
+  const items = [];
+  for (const raw of text.split('\n')) {
+    const m = raw.match(PIPE_LINE);
+    if (!m) continue;
+    const parts = m[2].split('|').map((s) => s.trim());
+    const url = parts[0];
+    if (!/^https?:\/\//.test(url)) continue;
+    items.push({ url, status: parts[1] || null, title: parts[2] || null });
+  }
+  return items;
+}
+
+function parseScanHistory(text) {
+  const rows = {};
+  const lines = text.split('\n').filter(Boolean);
+  if (lines.length === 0) return rows;
+  const header = lines[0].split('\t');
+  const idx = (name) => header.indexOf(name);
+  for (const line of lines.slice(1)) {
+    const cols = line.split('\t');
+    const url = cols[idx('url')];
+    if (!url) continue;
+    rows[url] = {
+      first_seen: cols[idx('first_seen')] || null,
+      portal: cols[idx('portal')] || null,
+      title: cols[idx('title')] || null,
+      location: cols[idx('location')] || null,
+    };
+  }
+  return rows;
+}
+
+function sourceFromUrl(url) {
+  const m = url.match(/reddit\.com\/r\/([^/]+)/i);
+  if (m) return `r/${m[1]}`;
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return null; }
+}
+
+/**
+ * Score every gig in the pipeline and write the derived scores.json.
+ * @returns {Promise<Record<string, object>>}
+ */
+export async function scoreAll({ pipelinePath, scanHistoryPath, profilePath, scoresPath }) {
+  const [pipelineText, historyText, profileText] = await Promise.all([
+    readFile(pipelinePath, 'utf8').catch(() => ''),
+    readFile(scanHistoryPath, 'utf8').catch(() => ''),
+    readFile(profilePath, 'utf8').catch(() => ''),
+  ]);
+  const profile = (profileText && yaml.load(profileText)) || {};
+  const items = parsePipelineLines(pipelineText);
+  const history = parseScanHistory(historyText);
+
+  const out = {};
+  for (const it of items) {
+    const h = history[it.url] || {};
+    const title = h.title || it.title || it.url;
+    const gig = {
+      url: it.url,
+      title,
+      body: '',
+      source: sourceFromUrl(it.url) || h.portal || null,
+      firstSeen: h.first_seen || null,
+    };
+    const r = scoreGig(gig, profile);
+    out[it.url] = {
+      title,
+      source: gig.source,
+      first_seen: gig.firstSeen,
+      budget: r.budget,
+      score: r.score,
+      blocks: r.blocks,
+      reasons: r.reasons,
+      redFlags: r.redFlags,
+      verdict: r.verdict,
+      state: 'estimated',
+      report: null,
+      scoredAt: new Date().toISOString(),
+    };
+  }
+  await writeFile(scoresPath, JSON.stringify(out, null, 2));
+  return out;
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  const root = process.cwd();
+  scoreAll({
+    pipelinePath: path.join(root, 'data', 'pipeline.md'),
+    scanHistoryPath: path.join(root, 'data', 'scan-history.tsv'),
+    profilePath: path.join(root, 'config', 'profile.yml'),
+    scoresPath: path.join(root, 'data', 'scores.json'),
+  })
+    .then((out) => console.log(`Scored ${Object.keys(out).length} gigs → data/scores.json`))
+    .catch((e) => { console.error(e); process.exit(1); });
 }

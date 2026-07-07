@@ -3,6 +3,7 @@ cv.md
 data/applications.md
 data/applications.db
 data/leads.db
+data/scores.json
 data/pipeline.md
 data/scan-history.tsv
 data/parser-output/**/*.json

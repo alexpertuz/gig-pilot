@@ -81,3 +81,39 @@ test('scoreGig marks below-walk-away rate as negotiate-or-lower', () => {
   assert.ok(r.blocks.B <= 2, `budget block should be low, got ${r.blocks.B}`);
   assert.ok(r.reasons.some((x) => /walk-away|below/i.test(x)));
 });
+
+import { scoreAll } from './score-heuristic.mjs';
+import { mkdtemp, writeFile, readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+test('scoreAll writes one scored entry per pipeline url', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'gigscore-'));
+  const pipeline = join(dir, 'pipeline.md');
+  const history = join(dir, 'scan-history.tsv');
+  const profile = join(dir, 'profile.yml');
+  const scores = join(dir, 'scores.json');
+
+  await writeFile(
+    pipeline,
+    '# Pipeline\n## Pending\n- [ ] https://x.test/a |  | [Hiring] React + Node dev $90/hr\n- [ ] https://x.test/b |  | 21M looking for work\n',
+  );
+  await writeFile(
+    history,
+    'url\tfirst_seen\tportal\ttitle\tcompany\tstatus\tlocation\n' +
+      'https://x.test/a\t2026-07-06\treddit-api\t[Hiring] React + Node dev $90/hr\t\tadded\tremote\n',
+  );
+  await writeFile(
+    profile,
+    'archetypes:\n  - name: FE\n    stack: ["React.js", "Node.js"]\nrate_card:\n  hourly:\n    target: 75\n    walk_away: 40\n',
+  );
+
+  const out = await scoreAll({ pipelinePath: pipeline, scanHistoryPath: history, profilePath: profile, scoresPath: scores });
+  assert.equal(Object.keys(out).length, 2);
+  assert.equal(out['https://x.test/a'].verdict, 'GO');
+  assert.equal(out['https://x.test/b'].verdict, 'DECLINE');
+  assert.equal(out['https://x.test/a'].state, 'estimated');
+
+  const onDisk = JSON.parse(await readFile(scores, 'utf8'));
+  assert.equal(onDisk['https://x.test/a'].score, out['https://x.test/a'].score);
+});
