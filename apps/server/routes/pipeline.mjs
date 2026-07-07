@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { readPipeline, writePipeline } from '../lib/files.mjs';
+import { readPipeline, writePipeline, readScores, readScanHistory, mergePipeline } from '../lib/files.mjs';
 
 const r = Router();
-r.get('/', async (_req, res) => res.json({ items: await readPipeline() }));
+r.get('/', async (_req, res) => {
+  const [items, scores, history] = await Promise.all([readPipeline(), readScores(), readScanHistory()]);
+  res.json({ items: mergePipeline(items, scores, history) });
+});
 r.post('/', async (req, res) => {
   const { url, title = null } = req.body;
   if (!/^https?:\/\//.test(url || '')) return res.status(400).json({ error: { message: 'invalid url' } });
