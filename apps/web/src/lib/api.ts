@@ -6,11 +6,27 @@ async function j<T>(res: Response): Promise<T> {
   return res.json();
 }
 
+export interface Budget {
+  raw?: string;
+  min?: number | null;
+  max?: number | null;
+  unit?: 'hourly' | 'project' | null;
+}
+
 export interface PipelineItem {
   url: string;
   status: string | null;
   title: string | null;
   checked: boolean;
+  score: number | null;
+  verdict: 'GO' | 'NEGOTIATE' | 'DECLINE' | null;
+  state: 'estimated' | 'evaluated' | null;
+  budget: Budget | null;
+  source: string | null;
+  firstSeen: string | null;
+  reasons: string[];
+  redFlags: string[];
+  report: string | null;
 }
 
 export const api = {
