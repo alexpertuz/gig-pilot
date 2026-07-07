@@ -80,3 +80,54 @@ export async function writeYaml(filePath, obj) {
   const text = yaml.dump(obj, { lineWidth: 100, noRefs: true });
   await atomicWrite(filePath, text);
 }
+
+export async function readScores() {
+  const text = await fs.readFile(paths.scores, 'utf8').catch(() => '');
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
+}
+
+export async function readScanHistory() {
+  const text = await fs.readFile(paths.scanHistory, 'utf8').catch(() => '');
+  const rows = {};
+  const lines = text.split('\n').filter(Boolean);
+  if (lines.length === 0) return rows;
+  const header = lines[0].split('\t');
+  const idx = (n) => header.indexOf(n);
+  for (const line of lines.slice(1)) {
+    const c = line.split('\t');
+    const url = c[idx('url')];
+    if (!url) continue;
+    rows[url] = {
+      first_seen: c[idx('first_seen')] || null,
+      portal: c[idx('portal')] || null,
+      title: c[idx('title')] || null,
+      location: c[idx('location')] || null,
+    };
+  }
+  return rows;
+}
+
+export function mergePipeline(items, scores = {}, history = {}) {
+  return items.map((it) => {
+    const s = scores[it.url] || null;
+    const h = history[it.url] || null;
+    return {
+      ...it,
+      title: (s && s.title) || (h && h.title) || it.title || it.url,
+      source: (s && s.source) || (h && h.portal) || null,
+      firstSeen: (s && s.first_seen) || (h && h.first_seen) || null,
+      budget: s ? s.budget : null,
+      score: s ? s.score : null,
+      verdict: s ? s.verdict : null,
+      state: s ? s.state : null,
+      reasons: s ? s.reasons : [],
+      redFlags: s ? s.redFlags : [],
+      report: s ? s.report : null,
+    };
+  });
+}

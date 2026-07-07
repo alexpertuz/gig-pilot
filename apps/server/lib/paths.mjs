@@ -14,6 +14,7 @@ export const paths = {
   leadsMd: path.join(REPO_ROOT, 'data', 'leads.md'),
   reportsDir: path.join(REPO_ROOT, 'reports'),
   scanHistory: path.join(REPO_ROOT, 'data', 'scan-history.tsv'),
+  scores: path.join(REPO_ROOT, 'data', 'scores.json'),
 };
 
 export const claudeBin = process.env.GIGOPS_CLAUDE_BIN || 'claude';
