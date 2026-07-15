@@ -1,18 +1,17 @@
-export function StatCard({
+export function Stat({
   label,
   value,
-  accent,
+  onClick,
 }: {
   label: string;
   value: string | number;
-  accent?: string;
+  onClick?: () => void;
 }) {
+  const Tag = onClick ? 'button' : 'div';
   return (
-    <div className="stat-card">
-      <div className="stat-value mono" style={{ color: accent || 'var(--text)' }}>
-        {value}
-      </div>
-      <div className="stat-label">{label}</div>
-    </div>
+    <Tag className="stat" onClick={onClick}>
+      <span className="stat-value">{value}</span>
+      <span className="stat-label">{label}</span>
+    </Tag>
   );
 }
