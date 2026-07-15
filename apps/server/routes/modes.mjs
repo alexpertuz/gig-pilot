@@ -3,9 +3,9 @@ import { startJob, subscribe, getJob } from '../lib/claude.mjs';
 
 const r = Router();
 r.post('/run', (req, res) => {
-  const { mode, args } = req.body;
+  const { mode, args, provider } = req.body;
   try {
-    res.json(startJob(mode, args || {}));
+    res.json(startJob(mode, args || {}, provider));
   } catch (e) {
     res.status(400).json({ error: { message: e.message } });
   }

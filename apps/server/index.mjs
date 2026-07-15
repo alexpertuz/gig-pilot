@@ -1,8 +1,10 @@
 import express from 'express';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { claudeBin, REPO_ROOT } from './lib/paths.mjs';
+import { promisify } from 'node:util';
+import { execFile } from 'node:child_process';
+import { REPO_ROOT } from './lib/paths.mjs';
+import { AGENT_PROVIDERS, normalizeProvider } from './lib/claude.mjs';
 import pipeline from './routes/pipeline.mjs';
 import leads from './routes/leads.mjs';
 import reports from './routes/reports.mjs';
@@ -13,6 +15,7 @@ import stats from './routes/stats.mjs';
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
+const execFileAsync = promisify(execFile);
 
 app.use('/api/pipeline', pipeline);
 app.use('/api/leads', leads);
@@ -22,9 +25,37 @@ app.use('/api/scan', scan);
 app.use('/api/modes', modes);
 app.use('/api/stats', stats);
 
-app.get('/api/health', (_req, res) => {
-  execFile(claudeBin, ['--version'], (err, stdout) => {
-    res.json({ claude: !err, version: err ? null : stdout.trim(), repoRoot: REPO_ROOT });
+app.get('/api/health', async (_req, res) => {
+  const entries = await Promise.all(Object.values(AGENT_PROVIDERS).map(async (provider) => {
+    try {
+      const { stdout } = await execFileAsync(provider.bin, provider.versionArgs);
+      return [provider.id, {
+        id: provider.id,
+        label: provider.label,
+        connected: true,
+        version: stdout.trim(),
+        bin: provider.bin,
+      }];
+    } catch (err) {
+      return [provider.id, {
+        id: provider.id,
+        label: provider.label,
+        connected: false,
+        version: null,
+        bin: provider.bin,
+        error: err.message,
+      }];
+    }
+  }));
+  const activeProvider = normalizeProvider();
+  const providers = Object.fromEntries(entries);
+  res.json({
+    provider: activeProvider,
+    activeProvider,
+    providers,
+    claude: providers.claude.connected,
+    version: providers.claude.version,
+    repoRoot: REPO_ROOT,
   });
 });
 

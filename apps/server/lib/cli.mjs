@@ -1,9 +1,12 @@
 import { spawn } from 'node:child_process';
 import { REPO_ROOT } from './paths.mjs';
 
-export function runNode(script, args = [], { onLine, onErr } = {}) {
+export function runNode(script, args = [], { onLine, onErr, env } = {}) {
   return new Promise((resolve) => {
-    const proc = spawn('node', [script, ...args], { cwd: REPO_ROOT });
+    const proc = spawn('node', [script, ...args], {
+      cwd: REPO_ROOT,
+      env: env ? { ...process.env, ...env } : process.env,
+    });
     let stdout = '';
     let stderr = '';
     let buf = '';

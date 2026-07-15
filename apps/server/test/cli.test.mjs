@@ -10,3 +10,11 @@ test('runNode captures stdout and streams lines', async () => {
   assert.equal(res.code, 0);
   assert.deepEqual(seen, ['hello', 'world']);
 });
+
+test('runNode can pass scoped environment values to the child process', async () => {
+  const res = await runNode('-e', ["console.log(process.env.GIG_OPS_SCAN_EVENTS || 'missing')"], {
+    env: { GIG_OPS_SCAN_EVENTS: '1' },
+  });
+
+  assert.equal(res.stdout.trim(), '1');
+});

@@ -3,7 +3,7 @@
 A premium web front-end for gig-ops. Everything you can do from the terminal —
 scan sources, evaluate gigs, generate proposals, track leads, edit config — is
 available in the browser, while the flat files stay the source of truth and AI
-modes still run through **Claude Code** (no Claude API).
+modes still run through a local agent CLI such as **Claude Code** or **Codex**.
 
 ## Layout
 
@@ -27,7 +27,7 @@ npm run ui:build
 # Production: single Express process serves the built app + API on :4317
 npm run ui
 
-# Server unit tests (file/CLI/claude-bridge adapters)
+# Server unit tests (file/CLI/agent-bridge adapters)
 npm run ui:test
 ```
 
@@ -39,16 +39,20 @@ Then open http://localhost:5273 (dev) or http://127.0.0.1:4317 (prod).
 |-----|---------|---------|
 | `PORT` | `4317` | Express port |
 | `GIGOPS_ROOT` | repo root (auto) | Override the gig-ops repo location |
+| `GIGOPS_AGENT_PROVIDER` | `claude` | Default agent provider: `claude` or `codex` |
 | `GIGOPS_CLAUDE_BIN` | `claude` | Path to the Claude Code CLI |
+| `GIGOPS_CODEX_BIN` | `codex` | Path to the Codex CLI |
 | `NODE_ENV` | — | Set to `production` to static-serve `apps/web/dist` |
 
-## AI actions require Claude Code
+## AI actions require a local agent CLI
 
 Clicking **Evaluate** (`/gig`), **Generate proposal** (`/proposal`), or **Analyze
-patterns** (`/patterns`) spawns `claude -p "<slash-command>"` in the repo and streams
-the output to the AI console drawer. This requires the `claude` CLI installed and
-logged in. Check **Settings** for a live health indicator. Only one AI job runs at a
-time; additional requests queue.
+patterns** (`/patterns`) spawns the selected provider in the repo and streams the
+output to the AI console drawer. Claude Code receives native slash commands. Codex
+receives a prompt to read the matching `modes/*.md` file and execute that mode. This
+requires the selected CLI installed and logged in. Check **Settings** for live health
+indicators and to choose the provider for browser-triggered jobs. Only one AI job
+runs at a time; additional requests queue.
 
 ## The Cardinal Rule
 
