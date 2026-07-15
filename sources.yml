@@ -18,6 +18,23 @@ title_filter:
     - "freelancer"
     - "contract"
     - "for hire"        # r/forhire demand+supply; negative list trims the supply side
+    - "need help with"
+    - "anyone available"
+    - "who can build"
+    - "hire someone"
+    - "looking to hire"
+    - "budget of"
+    - "paying"
+    - "part-time"
+    - "consultant"
+    - "contractor"
+    - "short-term"
+    - "quick project"
+    - "small project"
+    - "recommend a developer"
+    - "recommend an agency"
+    - "dev needed"
+    - "help wanted"
   negative:
     - "[for hire]"      # exclude freelancers advertising themselves (supply side)
     - "intern"
@@ -58,6 +75,7 @@ gig_boards:
   - name: "r/forhire"
     provider: reddit
     subreddit: forhire
+    priority: 2
     # search_queries narrow the RSS feed locally by title. [Hiring] = demand side.
     search_queries:
       - "[hiring]"
@@ -65,10 +83,12 @@ gig_boards:
   - name: "r/jobbit"
     provider: reddit
     subreddit: jobbit
+    priority: 2
 
   - name: "r/slavelabour"
     provider: reddit
     subreddit: slavelabour
+    priority: 3
     search_queries:
       - "[task]"
       - "[hiring]"
@@ -82,11 +102,34 @@ gig_boards:
   - name: "r/ycombinator"
     provider: reddit
     subreddit: ycombinator
+    priority: 1
 
   # r/beermoney — small paid tasks / on-demand microgigs.
   - name: "r/beermoney"
     provider: reddit
     subreddit: beermoney
+    priority: 3
+
+  # Public, unauthenticated feeds that surface freelance-friendly demand.
+  - name: "Hacker News — Freelancer"
+    provider: hn
+    thread: freelancer
+    priority: 1
+    enabled: true
+
+  - name: "Hacker News — Who Is Hiring"
+    provider: hn
+    thread: whoishiring
+    priority: 1
+    enabled: true
+
+  - name: "Get on Board"
+    provider: getonboard
+    categories:
+      - programming
+      - design
+    priority: 2
+    enabled: true
 
   # Remote job boards — mostly FULL-TIME roles. Disabled by default because they
   # flood the inbox with non-freelance jobs. Enable + rely on title_filter if you

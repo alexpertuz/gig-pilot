@@ -730,6 +730,11 @@ if (
 console.log('\n9. Local parser contract');
 
 const scanScript = readFile('scan.mjs');
+if (scanScript.includes("!f.endsWith('.test.mjs')")) {
+  pass('provider loader excludes test modules from runtime discovery');
+} else {
+  fail('provider loader must exclude .test.mjs modules from runtime discovery');
+}
 if (
   scanScript.includes('typeof entry.name !== \'string\'') &&
   scanScript.includes('entry.name.trim()') &&
@@ -1314,6 +1319,8 @@ try {
     shouldDedupScanHistoryRow,
     formatPipelineOffer,
     formatScanHistoryRow,
+    normalizePriority,
+    sortTargetsByPriority,
   } = await import(pathToFileURL(join(ROOT, 'scan.mjs')).href);
 
   const filter = buildLocationFilter({
@@ -1456,13 +1463,38 @@ try {
     company: '=ACME\\Corp\t| R&D',
     location: '@Remote\nEU',
   };
+  if (
+    normalizePriority(undefined) === 2 &&
+    normalizePriority(1) === 1 &&
+    normalizePriority(3) === 3 &&
+    normalizePriority(0) === 2 &&
+    normalizePriority(4) === 2 &&
+    normalizePriority('1') === 2 &&
+    normalizePriority(1.5) === 2
+  ) {
+    pass('source priority defaults to tier 2 and rejects invalid values');
+  } else {
+    fail('source priority normalization did not preserve only integral tiers 1–3');
+  }
+
+  const sortedTargets = sortTargetsByPriority([
+    { name: 'tier-three', priority: 3 },
+    { name: 'tier-one', priority: 1 },
+    { name: 'default-tier', priority: undefined },
+  ]);
+  if (sortedTargets.map(target => target.priority).join(',') === '1,2,3') {
+    pass('scan targets sort by resolved source priority');
+  } else {
+    fail(`scan targets did not sort by priority: ${JSON.stringify(sortedTargets)}`);
+  }
+
   const pipelineRow = formatPipelineOffer(hostileOffer);
   const pendingLines = pipelineRow.split('\n').filter(line => /^\s*- \[ \] https?:\/\//.test(line));
   const pipelineFields = pipelineRow.split('|').map(part => part.trim());
   if (
     pendingLines.length === 1 &&
     pipelineFields.length === 4 &&
-    pipelineFields[3] === 'relevance:0' &&
+    pipelineFields[3] === 'relevance:0 tier:2' &&
     pipelineFields[0] === '- [ ] https://jobs.example.com/123%7Cevil' &&
     !pipelineRow.includes('\n') &&
     !pipelineRow.includes('\t') &&
@@ -1475,17 +1507,25 @@ try {
     fail(`scan pipeline metadata sanitizer produced unsafe row: ${pipelineRow}`);
   }
 
+  const priorityOnePipelineRow = formatPipelineOffer({ ...hostileOffer, priority: 1 });
+  if (priorityOnePipelineRow.split('|').at(-1)?.trim() === 'relevance:0 tier:1') {
+    pass('scan pipeline writer emits tier 1 for a priority-1 offer');
+  } else {
+    fail(`scan pipeline writer did not preserve priority 1: ${priorityOnePipelineRow}`);
+  }
+
   const historyRow = formatScanHistoryRow(hostileOffer, '2026-06-18');
   const historyColumns = historyRow.split('\t');
   if (
-    historyColumns.length === 7 &&
+    historyColumns.length === 8 &&
     !historyColumns.some(col => /[\r\n\t]/.test(col)) &&
     historyColumns[0] === 'https://jobs.example.com/123|evil' &&
     historyColumns[3].includes('- [ ] https://evil.example/job') &&
     historyColumns[4] === "'=ACME\\Corp | R&D" &&
-    historyColumns[6] === "'@Remote EU"
+    historyColumns[6] === "'@Remote EU" &&
+    historyColumns[7] === '2'
   ) {
-    pass('scan-history writer preserves row shape and neutralizes spreadsheet formulas');
+    pass('scan-history writer appends priority and neutralizes spreadsheet formulas');
   } else {
     fail(`scan-history metadata sanitizer produced unsafe TSV row: ${JSON.stringify(historyColumns)}`);
   }
@@ -1545,7 +1585,7 @@ try {
 // ── 11b. TITLE FILTER — acronym word boundaries ──────────────────
 console.log('\n11b. Title filter — acronym word boundaries');
 try {
-  const { buildTitleFilter, compileKeyword } = await import(pathToFileURL(join(ROOT, 'scan.mjs')).href);
+  const { buildTitleFilter, buildRelevanceFilter, compileKeyword } = await import(pathToFileURL(join(ROOT, 'scan.mjs')).href);
 
   // Positive keywords no longer gate `keep` — they score `relevance`. Short
   // all-letter acronyms still match on WORD BOUNDARIES, not as substrings.
@@ -1573,6 +1613,25 @@ try {
     pass('compileKeyword("cfo") is word-boundary anchored');
   } else {
     fail('compileKeyword("cfo") boundary behavior wrong');
+  }
+
+  const relevanceFilter = buildRelevanceFilter({ positive: ['react'], negative: ['wordpress'] });
+  const descriptionFallback = relevanceFilter({ title: 'Software Engineer', description: 'Build React interfaces' });
+  if (descriptionFallback.keep === true && descriptionFallback.relevance === 1 && descriptionFallback.matched[0] === 'react') {
+    pass('description relevance falls back to demand keywords after a title miss');
+  } else {
+    fail(`description fallback did not surface description keyword matches: ${JSON.stringify(descriptionFallback)}`);
+  }
+  const titleHit = relevanceFilter({ title: 'React Engineer', description: 'React React React' });
+  if (titleHit.keep === true && titleHit.relevance === 1 && titleHit.matched[0] === 'react') {
+    pass('title relevance stays unchanged when title already matches');
+  } else {
+    fail(`title relevance should win over description matches: ${JSON.stringify(titleHit)}`);
+  }
+  if (relevanceFilter({ title: 'WordPress React Engineer', description: 'React' }).keep === false) {
+    pass('title negative keywords still reject before description relevance fallback');
+  } else {
+    fail('title negative keyword should reject even when description has a positive match');
   }
 } catch (e) {
   fail(`title filter acronym tests crashed: ${e.message}`);

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * scan.mjs — Zero-token portal scanner with a plugin-based provider layer.
+ * scan.mjs — Precision-first portal scanner with plugin-based acquisition.
  *
  * Providers live in providers/*.mjs and are loaded at startup. Each provider
  * exports a default object with:
@@ -18,7 +18,8 @@
  * URL-based auto-detection. The `transport:` field is reserved for future
  * transports — Phase A only ships the http transport.
  *
- * Zero Claude API tokens — pure HTTP + JSON.
+ * Acquisition is local HTTP + JSON. Admission uses the selected local agent
+ * runtime to validate bounded survivors; no model is pinned by this script.
  *
  * Usage:
  *   node scan.mjs                  # scan all enabled companies
@@ -36,7 +37,10 @@ import path from 'path';
 import yaml from 'js-yaml';
 
 import { makeHttpCtx } from './providers/_http.mjs';
-import { scoreAll } from './score-heuristic.mjs';
+import { normalizeCandidate } from './triage/contracts.mjs';
+import { triageCandidates } from './triage/engine.mjs';
+import { readDerivedState, writeDerivedStateAtomic } from './triage/store.mjs';
+import { normalizeProvider } from './agent-runtime.mjs';
 
 const parseYaml = yaml.load;
 
@@ -45,6 +49,98 @@ const parseYaml = yaml.load;
 const PORTALS_PATH = process.env.GIG_OPS_SOURCES || 'sources.yml';
 const SCAN_HISTORY_PATH = 'data/scan-history.tsv';
 const PIPELINE_PATH = 'data/pipeline.md';
+const PROFILE_PATH = 'config/profile.yml';
+const DERIVED_PATHS = {
+  candidates: 'data/candidates.json',
+  triage: 'data/triage.json',
+  scores: 'data/scores.json',
+};
+
+export function formatScanProgressEvent({ name, completed, total, jobsInspected }) {
+  return `::gig-ops-scan::${JSON.stringify({
+    type: 'source',
+    name,
+    completed,
+    total,
+    jobsInspected,
+  })}`;
+}
+
+export function formatTriageProgressEvent(metrics) {
+  const bySource = Object.fromEntries(Object.entries(metrics.bySource || {}).map(([source, values]) => [source, {
+    fetched: Number(values.fetched) || 0,
+    accepted: Number(values.accepted) || 0,
+    rejected: Number(values.rejected) || 0,
+    quarantined: Number(values.quarantined) || 0,
+  }]));
+  return `::gig-ops-scan::${JSON.stringify({
+    type: 'triage',
+    fetched: Number(metrics.fetched) || 0,
+    ruleRejected: Number(metrics.ruleRejected) || 0,
+    modelEvaluated: Number(metrics.modelEvaluated) || 0,
+    cached: Number(metrics.cached) || 0,
+    accepted: Number(metrics.accepted) || 0,
+    quarantined: Number(metrics.quarantined) || 0,
+    bySource,
+  })}`;
+}
+
+export function parseTriageOptions(args = [], env = process.env) {
+  const modeArg = args.find((arg) => arg.startsWith('--triage-mode='));
+  const mode = modeArg?.split('=')[1] || env.GIGOPS_TRIAGE_MODE || 'enforced';
+  if (mode !== 'enforced' && mode !== 'shadow') {
+    throw new Error(`triage mode must be "enforced" or "shadow", received: ${mode}`);
+  }
+  const providerArg = args.find((arg) => arg.startsWith('--agent-provider='));
+  const provider = providerArg?.split('=')[1] || env.GIGOPS_AGENT_PROVIDER || 'claude';
+  return { mode, provider, reclassify: args.includes('--reclassify') };
+}
+
+export function offerToTriageCandidate(offer, firstSeen) {
+  return normalizeCandidate({
+    ...offer,
+    source: offer.channelSource || offer.source,
+  }, {
+    provider: offer.provider,
+    firstSeen,
+  });
+}
+
+export function selectOffersForTriageMode(offers, triageResult, mode) {
+  if (mode === 'shadow') return offers;
+  const acceptedUrls = new Set((triageResult?.accepted || []).map((candidate) => candidate.url));
+  return offers.filter((offer) => acceptedUrls.has(offer.url));
+}
+
+export function rankTriagedOffers(offers, scores = {}) {
+  return [...offers].sort((a, b) => {
+    const activeA = Number(scores[a.url]?.score >= 3
+      && scores[a.url]?.verdict !== 'DECLINE'
+      && Number(scores[a.url]?.blocks?.A) >= 3
+      && Number(scores[a.url]?.blocks?.B) > 1);
+    const activeB = Number(scores[b.url]?.score >= 3
+      && scores[b.url]?.verdict !== 'DECLINE'
+      && Number(scores[b.url]?.blocks?.A) >= 3
+      && Number(scores[b.url]?.blocks?.B) > 1);
+    const scoreA = Number.isFinite(scores[a.url]?.score) ? scores[a.url].score : -Infinity;
+    const scoreB = Number.isFinite(scores[b.url]?.score) ? scores[b.url].score : -Infinity;
+    return activeB - activeA
+      || scoreB - scoreA
+      || (b.relevance ?? 0) - (a.relevance ?? 0)
+      || normalizePriority(a.priority) - normalizePriority(b.priority)
+      || (a._sourceOrder ?? 0) - (b._sourceOrder ?? 0)
+      || (a._offerOrder ?? 0) - (b._offerOrder ?? 0);
+  });
+}
+
+export function mergeTriageDerivedState(existing, result) {
+  const candidates = { ...(existing?.candidates || {}), ...(result?.candidates || {}) };
+  const triage = { ...(existing?.triage || {}), ...(result?.decisions || {}) };
+  const scores = { ...(existing?.scores || {}) };
+  for (const url of Object.keys(result?.candidates || {})) delete scores[url];
+  Object.assign(scores, result?.scores || {});
+  return { candidates, triage, scores };
+}
 const APPLICATIONS_PATH = 'data/leads.md';
 const PROVIDERS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'providers');
 
@@ -60,7 +156,7 @@ async function loadProviders(dir) {
   if (!existsSync(dir)) return providers;
   // Alphabetical order so detect() priority is deterministic across machines.
   const entries = readdirSync(dir)
-    .filter(f => f.endsWith('.mjs') && !f.startsWith('_'))
+    .filter(f => f.endsWith('.mjs') && !f.startsWith('_') && !f.endsWith('.test.mjs'))
     .sort();
   for (const file of entries) {
     const full = path.join(dir, file);
@@ -135,6 +231,21 @@ export function compileKeyword(kw) {
   return (lower) => lower.includes(kw);
 }
 
+// Source priority is deliberately narrow: only the three documented integer
+// tiers persist into pipeline/history metadata. Everything else safely falls
+// back to the neutral tier instead of leaking malformed config downstream.
+export function normalizePriority(value) {
+  return Number.isInteger(value) && value >= 1 && value <= 3 ? value : 2;
+}
+
+// Returns a stable, normalized copy so callers can schedule sources in tier
+// order without mutating the config objects parsed from sources.yml.
+export function sortTargetsByPriority(targets) {
+  return targets
+    .map(target => ({ ...target, priority: normalizePriority(target.priority) }))
+    .sort((a, b) => a.priority - b.priority);
+}
+
 // Returns a scorer: (title) => { keep, relevance, matched }
 //   - keep:      false ONLY when a negative keyword is present. Missing positive
 //                keywords no longer rejects a post — it just scores 0 relevance.
@@ -153,6 +264,24 @@ export function buildTitleFilter(titleFilter) {
       return { keep: false, relevance: 0, matched: [] };
     }
     const matched = positive.filter(p => p.test(lower)).map(p => p.kw);
+    return { keep: true, relevance: matched.length, matched };
+  };
+}
+
+// Relevance is title-led: descriptions are considered only when no positive
+// title keyword matched. This preserves title ranking while allowing demand
+// language in provider-supplied descriptions to rescue generic role titles.
+export function buildRelevanceFilter(titleFilter) {
+  const matchTitle = buildTitleFilter(titleFilter);
+  const positive = (titleFilter?.positive || [])
+    .map(k => k.toLowerCase())
+    .map(kw => ({ kw, test: compileKeyword(kw) }));
+
+  return ({ title, description }) => {
+    const titleMatch = matchTitle(title);
+    if (!titleMatch.keep || titleMatch.relevance > 0) return titleMatch;
+    const lowerDescription = typeof description === 'string' ? description.toLowerCase() : '';
+    const matched = positive.filter(p => p.test(lowerDescription)).map(p => p.kw);
     return { keep: true, relevance: matched.length, matched };
   };
 }
@@ -205,17 +334,16 @@ export function buildLocationFilter(locationFilter) {
 // Filters on the job DESCRIPTION text to separate same-titled roles with
 // different stacks (a "Software Engineer" listing that mentions "PHP" vs one
 // that mentions "Rust"). Semantics (case-insensitive substring, in order):
-//   - Empty / whitespace-only / non-string description → PASS. The scanner is
-//     zero-token and only sees descriptions a provider already returns in its
-//     list payload; providers without one must never be silently dropped.
+//   - Empty / whitespace-only / non-string description → PASS at this early
+//     filter. Precision triage later quarantines content that cannot support a
+//     verified eligibility decision.
 //   - any `negative` keyword present → reject
 //   - `positive` empty → pass (already cleared negatives)
 //   - `positive` non-empty → at least one keyword must be present
 //
-// Provider support: only providers whose list API ships the description for
-// free (no extra per-job request, which would break the zero-token design)
-// populate `job.description`. Lever (`descriptionPlain`) does today; others
-// leave it empty and therefore always pass this filter.
+// Provider support: providers should preserve the fullest description their
+// source payload exposes. Those without one leave it empty and therefore pass
+// this early filter, but cannot bypass the later evidence-based triage gate.
 
 export function buildContentFilter(contentFilter) {
   if (!contentFilter) return () => true;
@@ -511,10 +639,11 @@ export function formatPipelineOffer(offer) {
   // Additive 4th field — `/pipeline` reads the URL (field 1) and Company/Role
   // (fields 2–3), so this is safe to append and gives the LLM a ranking hint.
   const relevance = Number.isFinite(offer.relevance) ? offer.relevance : 0;
+  const priority = normalizePriority(offer.priority);
   const matched = Array.isArray(offer.matchedKeywords) ? offer.matchedKeywords : [];
   const signal = matched.length
-    ? `relevance:${relevance} [${sanitizeMarkdownField(matched.join(', '))}]`
-    : `relevance:${relevance}`;
+    ? `relevance:${relevance} tier:${priority} [${sanitizeMarkdownField(matched.join(', '))}]`
+    : `relevance:${relevance} tier:${priority}`;
   return `- [ ] ${url} | ${company} | ${title} | ${signal}`;
 }
 
@@ -527,6 +656,7 @@ export function formatScanHistoryRow(offer, date, status = 'added') {
     offer.company,
     status,
     offer.location || '',
+    normalizePriority(offer.priority),
   ].map(sanitizeTsvField).join('\t');
 }
 
@@ -588,7 +718,15 @@ export function appendToScanHistory(offers, date, status = 'added') {
   // can record verify outcomes (`skipped_expired`, etc.) without the legacy
   // `(expired)` suffix in `source`.
   if (!existsSync(SCAN_HISTORY_PATH)) {
-    writeFileSync(SCAN_HISTORY_PATH, 'url\tfirst_seen\tportal\ttitle\tcompany\tstatus\tlocation\n', 'utf-8');
+    writeFileSync(SCAN_HISTORY_PATH, 'url\tfirst_seen\tportal\ttitle\tcompany\tstatus\tlocation\tpriority\n', 'utf-8');
+  } else {
+    const history = readFileSync(SCAN_HISTORY_PATH, 'utf-8');
+    const newline = history.indexOf('\n');
+    const header = newline === -1 ? history : history.slice(0, newline);
+    if (!header.split('\t').includes('priority')) {
+      const remainder = newline === -1 ? '' : history.slice(newline);
+      writeFileSync(SCAN_HISTORY_PATH, `${header}\tpriority${remainder}`, 'utf-8');
+    }
   }
 
   const lines = offers.map(o => formatScanHistoryRow(o, date, status)).join('\n') + '\n';
@@ -741,6 +879,8 @@ async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
   const verify = args.includes('--verify');
+  const triageOptions = parseTriageOptions(args);
+  triageOptions.provider = normalizeProvider(triageOptions.provider);
   // Opt-in: on an anti-bot challenge (e.g. pracuj.pl Cloudflare wall), retry the
   // URL in a headed browser. Off by default — headed Chromium needs a display, so
   // scheduled/unattended scans should not rely on it.
@@ -781,7 +921,7 @@ async function main() {
   // Support both legacy job_boards and new gig_boards key
   const boards = Array.isArray(config.gig_boards) ? config.gig_boards
     : Array.isArray(config.job_boards) ? config.job_boards : [];
-  const titleFilter = buildTitleFilter(config.title_filter);
+  const relevanceFilter = buildRelevanceFilter(config.title_filter);
   const locationFilter = buildLocationFilter(config.location_filter);
   const budgetFilter = buildBudgetFilter(config.budget_filter);
   const contentFilter = buildContentFilter(config.content_filter);
@@ -835,8 +975,10 @@ async function main() {
   resolveEntries(companies);
   resolveEntries(boards, { isBoard: true });
 
-  const localParserCount = targets.filter(t => t._provider.id === 'local-parser').length;
-  const companyCount = targets.length - boardCount;
+  const prioritizedTargets = sortTargetsByPriority(targets)
+    .map((target, sourceOrder) => ({ ...target, _sourceOrder: sourceOrder }));
+  const localParserCount = prioritizedTargets.filter(t => t._provider.id === 'local-parser').length;
+  const companyCount = prioritizedTargets.length - boardCount;
   const parts = [`${companyCount} companies`];
   if (boardCount > 0) parts.push(`${boardCount} job boards`);
   parts.push(`${localParserCount} local parser`);
@@ -861,10 +1003,13 @@ async function main() {
   const newOffers = [];
   const errors = [...resolveErrors];
 
-  const tasks = targets.map(company => async () => {
+  let completedTargets = 0;
+  let jobsInspected = 0;
+  const tasks = prioritizedTargets.map(company => async () => {
     let provider = company._provider;
     const ctx = makeHttpCtx();
     let sourceName = provider.id === 'local-parser' ? 'local-parser' : `${provider.id}-api`;
+    let sourceJobs = 0;
     try {
       let jobs;
       try {
@@ -884,10 +1029,11 @@ async function main() {
       if (!Array.isArray(jobs)) {
         throw new Error(`${provider.id}: fetch() did not return an array`);
       }
+      sourceJobs = jobs.length;
       totalFound += jobs.length;
 
-      for (const job of jobs) {
-        const titleMatch = titleFilter(job.title);
+      for (const [offerOrder, job] of jobs.entries()) {
+        const titleMatch = relevanceFilter(job);
         if (!titleMatch.keep) {
           // Only negative keywords reject now (renamed counter below).
           totalFilteredTitle++;
@@ -928,14 +1074,35 @@ async function main() {
         newOffers.push({
           ...job,
           source: sourceName,
+          channelSource: job.source || company.name || provider.id,
+          provider: provider.id,
+          sourceSignals: [
+            `configured-source:${company.name}`,
+            ...(company.thread ? [`thread:${company.thread}`] : []),
+            ...titleMatch.matched.map(keyword => `keyword:${keyword}`),
+          ],
           tracked: Boolean(careersUrlDomain),
           careersUrlDomain,
           relevance: titleMatch.relevance,
           matchedKeywords: titleMatch.matched,
+          priority: company.priority,
+          _sourceOrder: company._sourceOrder,
+          _offerOrder: offerOrder,
         });
       }
     } catch (err) {
       errors.push({ company: company.name, error: err.message });
+    } finally {
+      completedTargets += 1;
+      jobsInspected += sourceJobs;
+      if (process.env.GIG_OPS_SCAN_EVENTS === '1') {
+        console.log(formatScanProgressEvent({
+          name: company.name,
+          completed: completedTargets,
+          total: prioritizedTargets.length,
+          jobsInspected,
+        }));
+      }
     }
   });
 
@@ -961,11 +1128,62 @@ async function main() {
     }
   }
 
-  // Rank: positive-keyword hits first (most on-topic at the top of the inbox),
-  // ties keep provider order. Stable because Array.sort is stable in Node.
-  verifiedOffers = [...verifiedOffers].sort(
-    (a, b) => (b.relevance ?? 0) - (a.relevance ?? 0),
-  );
+  // 5.6. Precision-first triage — no offer crosses the User Layer write
+  // boundary until deterministic rules and the selected active model confirm
+  // that it is paid, client-side independent work.
+  let triageResult = {
+    accepted: [], rejected: [], uncertain: [], candidates: {}, decisions: {}, scores: {}, issues: [],
+    metrics: {
+      fetched: verifiedOffers.length, ruleRejected: 0, modelEvaluated: 0,
+      cached: 0, accepted: 0, quarantined: verifiedOffers.length,
+    },
+  };
+  if (verifiedOffers.length > 0) {
+    try {
+      if (!existsSync(PROFILE_PATH)) throw new Error('config/profile.yml not found; complete onboarding before AI triage');
+      const profile = parseYaml(readFileSync(PROFILE_PATH, 'utf8')) || {};
+      const existingDerived = await readDerivedState(DERIVED_PATHS);
+      for (const issue of existingDerived.issues) errors.push({ company: 'Derived triage cache', error: issue });
+
+      const candidates = [];
+      for (const offer of verifiedOffers) {
+        try {
+          candidates.push(offerToTriageCandidate(offer, date));
+        } catch (error) {
+          errors.push({ company: offer.company ?? offer.poster ?? offer.source ?? 'Candidate', error: `candidate normalization failed: ${error.message}` });
+        }
+      }
+
+      triageResult = await triageCandidates(candidates, {
+        profile,
+        provider: triageOptions.provider,
+        cache: existingDerived.triage,
+        reclassify: triageOptions.reclassify,
+        maxModelCandidates: Number(config.ai_triage?.max_candidates_per_scan) || 30,
+        batchSize: Number(config.ai_triage?.batch_size) || 10,
+        timeoutMs: Number(config.ai_triage?.timeout_ms) || 300_000,
+      });
+      for (const issue of triageResult.issues) errors.push({ company: 'AI triage', error: issue });
+
+      if (!dryRun) {
+        const nextDerived = mergeTriageDerivedState(existingDerived, triageResult);
+        await writeDerivedStateAtomic(DERIVED_PATHS, nextDerived);
+      }
+      verifiedOffers = selectOffersForTriageMode(verifiedOffers, triageResult, triageOptions.mode);
+    } catch (error) {
+      errors.push({ company: 'AI triage', error: error.message });
+      if (triageOptions.mode === 'enforced') verifiedOffers = [];
+    }
+  }
+
+  if (process.env.GIG_OPS_SCAN_EVENTS === '1') {
+    console.log(formatTriageProgressEvent(triageResult.metrics));
+  }
+
+  // Rank: positive-keyword hits first, then source tier, then the scheduled
+  // source/job order. The latter makes concurrent fetch completion invisible
+  // to users when relevance and priority tie.
+  verifiedOffers = rankTriagedOffers(verifiedOffers, triageResult.scores);
 
   // 6. Write results
   if (!dryRun && verifiedOffers.length > 0) {
@@ -1006,8 +1224,8 @@ async function main() {
   console.log(`\n${'━'.repeat(45)}`);
   console.log(`Portal Scan — ${date}`);
   console.log(`${'━'.repeat(45)}`);
-  const summaryCompanies = targets.filter(t => !t._isBoard).length;
-  const summaryBoards = targets.filter(t => t._isBoard).length;
+  const summaryCompanies = prioritizedTargets.filter(t => !t._isBoard).length;
+  const summaryBoards = prioritizedTargets.filter(t => t._isBoard).length;
   console.log(`Companies scanned:     ${summaryCompanies}`);
   if (summaryBoards > 0) console.log(`Job boards scanned:    ${summaryBoards}`);
   console.log(`Total jobs found:      ${totalFound}`);
@@ -1016,6 +1234,17 @@ async function main() {
   console.log(`Filtered by budget:   ${totalFilteredBudget} removed`);
   console.log(`Filtered by content:  ${totalFilteredContent} removed`);
   console.log(`Duplicates:            ${totalDupes} skipped`);
+  console.log(`Rule-rejected:         ${triageResult.metrics.ruleRejected || 0}`);
+  console.log(`Model evaluated:       ${triageResult.metrics.modelEvaluated || 0}`);
+  console.log(`Triage cache hits:     ${triageResult.metrics.cached || 0}`);
+  console.log(`Quarantined:           ${triageResult.metrics.quarantined || 0}`);
+  const sourceQuality = Object.entries(triageResult.metrics.bySource || {});
+  if (sourceQuality.length > 0) {
+    console.log('Source quality:');
+    for (const [source, values] of sourceQuality.sort(([a], [b]) => a.localeCompare(b))) {
+      console.log(`  ${source}: ${values.fetched} fetched, ${values.accepted} accepted, ${values.rejected} rejected, ${values.quarantined} quarantined`);
+    }
+  }
   if (historyPolicy.recheckAfterDays != null) {
     console.log(`Recheck eligible:      ${seenUrlState.recheckEligible} old scan-history URL(s)`);
   }
@@ -1048,24 +1277,14 @@ async function main() {
   if (verifiedOffers.length > 0) {
     console.log('\nNew offers:');
     for (const o of verifiedOffers) {
-      console.log(`  + ${o.company ?? o.poster ?? '—'} | ${o.title} | ${o.location || 'N/A'}`);
+      const fit = triageResult.scores[o.url];
+      const fitLabel = fit ? ` | fit ${Number(fit.score).toFixed(1)} ${fit.verdict}` : '';
+      console.log(`  + ${o.company ?? o.poster ?? '—'} | ${o.title} | ${o.location || 'N/A'}${fitLabel}`);
     }
     if (dryRun) {
       console.log('\n(dry run — run without --dry-run to save results)');
     } else {
       console.log(`\nResults saved to ${PIPELINE_PATH} and ${SCAN_HISTORY_PATH}`);
-      try {
-        const scored = await scoreAll({
-          pipelinePath: PIPELINE_PATH,
-          scanHistoryPath: SCAN_HISTORY_PATH,
-          profilePath: 'config/profile.yml',
-          scoresPath: 'data/scores.json',
-        });
-        console.log(`Scored ${Object.keys(scored).length} gigs → data/scores.json`);
-      } catch (e) {
-        // Scoring must never fail a scan.
-        console.error('Heuristic scoring failed (non-fatal):', e.message);
-      }
     }
   }
 

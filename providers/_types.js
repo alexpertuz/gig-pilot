@@ -22,8 +22,8 @@
  * @property {string} poster      - Poster handle or company name (required)
  * @property {string} source      - Provider ID that produced this entry (required, set by scan.mjs)
  * @property {string} [location]  - Location string ("remote", city, etc.) or empty = remote
- * @property {string} [description] - Full post text. Used for content_filter matching.
- *                                    Zero-token: scan.mjs filters on this, never sends to LLM.
+ * @property {string} [description] - Full post text. Preserved for source-aware rules and
+ *                                    model triage. Always treated as untrusted input.
  * @property {string} [postedAt]  - ISO 8601 date string (YYYY-MM-DD or full datetime)
  * @property {string} [budget]    - Raw budget/rate string from the source
  *                                    e.g. "$50/hr", "$500 fixed", "€800", "negotiable"
@@ -32,6 +32,9 @@
  * @property {number} [posterScore] - Source-specific trust score (0–100).
  *                                    For Reddit: derived from account age + karma.
  *                                    Used by legitimacy scoring in modes/gig.md.
+ * @property {1|2|3} [priority]    - Resolved source tier stamped by scan.mjs.
+ *                                    1 is highest priority; omitted/invalid values resolve to 2.
+ * @property {string[]} [sourceSignals] - Source-specific evidence retained for triage.
  * @property {object} [_raw]      - Original source object for debugging (not written to pipeline.md)
  */
 
@@ -60,7 +63,9 @@
  * @property {string} [subreddit] - For Reddit provider: subreddit name (no r/ prefix)
  * @property {string[]} [search_queries] - For Reddit provider: search terms to use
  * @property {string[]} [tags]    - For RemoteOK/WorkingNomads: tag filters
- * @property {string[]} [categories] - For WorkingNomads: category filters
+ * @property {string[]} [categories] - For WorkingNomads and Get on Board: category filters
+ * @property {1|2|3} [priority]   - Source scheduling tier; defaults to 2 in scan.mjs
+ * @property {'freelancer'|'whoishiring'} [thread] - Hacker News thread to scan
  */
 
 /**

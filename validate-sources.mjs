@@ -63,6 +63,18 @@ function validateKeywordList(value, path, errors) {
   }
 }
 
+function validateNonEmptyStringArray(value, path, errors) {
+  if (!Array.isArray(value) || value.length === 0) {
+    add(errors, path, 'must be a non-empty string array');
+    return;
+  }
+  for (const [idx, item] of value.entries()) {
+    if (typeof item !== 'string' || item.trim() === '') {
+      add(errors, `${path}[${idx}]`, 'must be a non-empty string');
+    }
+  }
+}
+
 function validateParser(parser, path, errors) {
   if (parser === undefined || parser === null) return;
   if (!isObject(parser)) {
@@ -182,6 +194,28 @@ export async function validatePortalsConfig(config, { providerIds = new Set() } 
     }
   }
 
+  if (config.gig_boards !== undefined && !Array.isArray(config.gig_boards)) {
+    add(errors, 'gig_boards', 'gig_boards must be an array when set');
+  }
+  if (Array.isArray(config.gig_boards)) {
+    for (const [idx, board] of config.gig_boards.entries()) {
+      const base = `gig_boards[${idx}]`;
+      if (!isObject(board)) {
+        add(errors, base, 'gig board entry must be an object');
+        continue;
+      }
+      if (board.priority !== undefined && (!Number.isInteger(board.priority) || board.priority < 1 || board.priority > 3)) {
+        add(errors, `${base}.priority`, 'priority must be an integer 1, 2, or 3 when set');
+      }
+      if (board.provider === 'hn' && !['freelancer', 'whoishiring'].includes(board.thread)) {
+        add(errors, `${base}.thread`, 'HN thread must be "freelancer" or "whoishiring"');
+      }
+      if (board.provider === 'getonboard') {
+        validateNonEmptyStringArray(board.categories, `${base}.categories`, errors);
+      }
+    }
+  }
+
   return { errors, warnings };
 }
 
@@ -213,6 +247,15 @@ tracked_companies:
     const result = await validateFile(file);
     if (result.errors.length !== 2) {
       throw new Error(`expected 2 errors, got ${result.errors.length}`);
+    }
+    const priorityResult = await validatePortalsConfig({
+      gig_boards: [
+        { provider: 'hn', priority: 1.5, thread: 'monthly' },
+        { provider: 'getonboard', priority: 4, categories: ['remote', ''] },
+      ],
+    }, { providerIds: new Set(['hn', 'getonboard']) });
+    if (priorityResult.errors.length !== 4) {
+      throw new Error(`expected 4 priority/source-shape errors, got ${priorityResult.errors.length}`);
     }
     console.log('validate-portals self-test OK');
   } finally {

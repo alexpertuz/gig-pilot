@@ -2,9 +2,60 @@
 
 Scans configured gig sources, filters by title relevance, and adds new offers to the pipeline for subsequent evaluation.
 
-> **Note (v1.6+):** The default scanner (`scan.mjs` / `npm run scan`) is **zero-token** and uses structured sources: local parsers configured per company and public Greenhouse, Ashby, and Lever APIs. The levels with Playwright/WebSearch described below represent the **agent** workflow (executed by the AI agent), not what `scan.mjs` does. If a company does not have a local parser or a Greenhouse/Ashby/Lever API, `scan.mjs` will ignore it; in those cases, the agent must manually complete Level 1 (Playwright) or Level 3 (WebSearch).
+> **Note (v2+):** Acquisition uses structured providers and local parsers. Admission is precision-first: deterministic source rules run first, then the selected local agent model validates every bounded survivor before it can enter active Pipeline. The scanner does not pin a model.
 >
 > **Rule (v1.8+):** If a company's local parser completes successfully in Level 0, the agent **must not** repeat that company in Playwright (Level 1) or API (Level 2). In Level 3, general queries remain active, but results from companies already covered by a parser are discarded. See [Rule: Successful Local Parser](#rule-successful-local-parser--no-expensive-scraping-repetition).
+
+## Precision-first admission
+
+`node scan.mjs` defaults to enforced triage. A candidate reaches Pipeline only
+when the selected model confirms, with confidence of at least `0.85`, that it is
+paid, client-side, independent freelance/project/contract work and returns
+source-grounded evidence plus a complete A–F fit score. Discussions, worker
+advertisements, salaried roles, unpaid work, malformed responses, model
+timeouts, low-confidence decisions, and capacity overflow stay outside the
+active list.
+
+Eligibility and profile fit are separate. A genuine paid gig may be stored for
+audit, but it appears in active **Worth applying / Review** tiers only when its
+validated fit score is at least `3`, Archetype Fit (A) is at least `3`, Budget
+Realism (B) is above `1`, and the verdict is not `DECLINE`. Paid work outside
+the configured services stays in collapsed **Low fit** even if strong terms
+push its weighted total above 3. Commission-only, revenue-share, and
+performance-only compensation are rejected before model evaluation.
+
+Use the provider selected in the UI, or pass it explicitly from the CLI:
+
+```bash
+node scan.mjs --agent-provider=codex
+node scan.mjs --agent-provider=claude
+```
+
+These flags select the local runtime, not a hard-coded model; each runtime uses
+its current/default configured model. Operational flags:
+
+- `--reclassify` ignores reusable model decisions for candidates fetched in the current scan.
+- `--triage-mode=shadow` records decisions while preserving legacy admission behavior; use only for diagnostics.
+- deleting `data/candidates.json`, `data/triage.json`, and `data/scores.json` clears rebuildable derived state without rewriting existing Pipeline rows.
+
+Existing Pipeline rows without a verified decision are shown under **Needs
+classification**, never as scored active gigs. Scan output reports rule rejects,
+model evaluations, cache hits, accepted gigs, and quarantined candidates.
+
+The default model timeout is five minutes per 10-candidate batch because local
+Codex runs can exceed two minutes on full-content evidence validation. Override
+it with `ai_triage.timeout_ms` in source configuration when necessary. Quota,
+rate-limit, authentication, and timeout failures stop immediately and
+quarantine the affected batch.
+
+Run the deterministic release gates with `npm run quality:test`. To replay a
+saved decision file without touching User Layer data, run
+`node quality-eval.mjs --replay <file>`. `--active-provider=codex` or
+`--active-provider=claude` exercises the configured/default model and writes
+nothing unless an explicit `--output <file>` is supplied. Gates require at
+least 95% eligibility precision, 70% eligibility recall, 95% active-fit
+precision, 70% fit recall, perfect schema validity, and zero hard-negative or
+top-20 leakage.
 
 ## Recommended Execution
 
@@ -25,6 +76,16 @@ Read `sources.yml` which contains:
 - `tracked_companies`: Specific companies with `careers_url` for direct navigation
 - `tracked_companies[].parser`: Optional local parser for SSR pages or stable HTML
 - `title_filter`: Keywords (positive/negative/seniority_boost) for filtering gig titles
+
+## Deferred authenticated sources
+
+`node scan.mjs` uses public HTTP feeds only: it does not use credentials or a
+browser session. Contra, Indie Hackers, YC Work at a Startup, LinkedIn,
+Facebook, Wellfound, and Discord are therefore deferred to a future
+browser-assisted/authenticated phase. That phase can inspect the user's
+authorized browser session (or, for Discord, an explicitly user-created bot
+token where permitted), then send candidate posts through the same filter and
+deduplication path before appending them to `data/pipeline.md`.
 
 ## Discovery Strategy (4 Levels)
 
