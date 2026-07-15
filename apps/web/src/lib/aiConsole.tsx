@@ -29,15 +29,21 @@ export async function openMode(mode: string, args: any, opts?: { onDone?: (s: st
   set({ open: true, running: true, mode, text: '', status: 'starting' });
   try {
     const { jobId } = await api.runMode(mode, args);
-    streamGet(`/api/modes/stream/${jobId}`, (e) => {
-      if (e.type === 'text' || e.type === 'result') set({ text: state.text + e.data });
-      else if (e.type === 'status') set({ status: e.data });
-      else if (e.type === 'stderr') set({ text: state.text + `\n[stderr] ${e.data}` });
-      else if (e.type === 'done') {
-        set({ running: false, status: e.data.status });
-        onDoneCb?.(e.data.status);
-      }
-    });
+    streamGet(
+      `/api/modes/stream/${jobId}`,
+      (e) => {
+        if (e.type === 'text' || e.type === 'result') set({ text: state.text + e.data });
+        else if (e.type === 'status') set({ status: e.data });
+        else if (e.type === 'stderr') set({ text: state.text + `\n[stderr] ${e.data}` });
+        else if (e.type === 'done') {
+          set({ running: false, status: e.data.status });
+          onDoneCb?.(e.data.status);
+        }
+      },
+      (err) => {
+        set({ running: false, status: 'error', text: state.text + `\n[stream error] ${err.message}` });
+      },
+    );
   } catch (err: any) {
     set({ running: false, status: 'error', text: String(err?.message || err) });
   }
