@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node dev.mjs",
+    "dev:web": "vite",
     "generate": "tsr generate",
     "build": "tsr generate && tsc -b && vite build",
     "preview": "vite preview"

@@ -5,6 +5,7 @@ import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 export default defineConfig({
   plugins: [TanStackRouterVite(), react()],
   server: {
+    host: '127.0.0.1',
     port: 5273,
     proxy: { '/api': 'http://127.0.0.1:4317' },
   },
