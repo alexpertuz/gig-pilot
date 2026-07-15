@@ -4,10 +4,11 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 
 const HOURLY_HINT = /\b(hour|hourly|per hour|an hour)\b|\/\s*hr/i;
+const ANNUAL_HINT = /\b(per\s+year|a\s+year|annuall?y?|per\s+annum|yearly)\b|\/\s*(year|yr)\b|p\.a\./i;
 
 /**
  * Parse a compensation signal out of free text.
- * @returns {{raw:string,min:number|null,max:number|null,unit:'hourly'|'project'}|null}
+ * @returns {{raw:string,min:number|null,max:number|null,unit:'hourly'|'annual'|'project'}|null}
  */
 export function parseBudget(text) {
   if (!text) return null;
@@ -21,8 +22,9 @@ export function parseBudget(text) {
   if (amounts.length === 0) return null;
   const min = Math.min(...amounts);
   const max = Math.max(...amounts);
-  // Hourly only when the text says so; otherwise treat a bare amount as a project budget.
-  const unit = HOURLY_HINT.test(text) ? 'hourly' : 'project';
+  // Hourly wins when stated (a contract rate matters more than an annualized aside);
+  // then annual salary; a bare amount is treated as a project budget.
+  const unit = HOURLY_HINT.test(text) ? 'hourly' : ANNUAL_HINT.test(text) ? 'annual' : 'project';
   return {
     raw: text.match(/\$[\s\d,.\-–to/a-z]*/i)?.[0]?.trim() ?? `$${max}`,
     min: amounts.length > 1 ? min : null,
@@ -46,6 +48,7 @@ const SCAM = [
 
 const lc = (s) => (s || '').toLowerCase();
 const clamp = (n, lo = 1, hi = 5) => Math.max(lo, Math.min(hi, n));
+const normalizePriority = (value) => Number.isInteger(value) && value >= 1 && value <= 3 ? value : 2;
 
 function archetypeKeywords(profile) {
   const stacks = (profile.archetypes || []).flatMap((a) => a.stack || []);
@@ -67,9 +70,9 @@ function daysSince(iso) {
 
 /**
  * Score a gig against the 6-block rubric using mechanical signals only.
- * @returns {{score:number, blocks:object, reasons:string[], redFlags:string[], verdict:string, budget:object|null}}
+ * @returns {{score:number, blocks:object, reasons:string[], redFlags:string[], verdict:string, budget:object|null, jobSeeker:boolean}}
  */
-export function scoreGig(gig, profile = {}) {
+export function scoreGig(gig, profile = {}, priority = 2) {
   const text = lc(`${gig.title || ''} ${gig.body || ''}`);
   const reasons = [];
   const redFlags = [];
@@ -86,10 +89,12 @@ export function scoreGig(gig, profile = {}) {
       hardDecline = true;
     }
   }
+  let jobSeeker = false;
   for (const phrase of JOB_SEEKER) {
     if (text.includes(phrase)) {
       redFlags.push(`Job-seeker, not a client: "${phrase}"`);
       hardDecline = true;
+      jobSeeker = true;
       break;
     }
   }
@@ -111,7 +116,12 @@ export function scoreGig(gig, profile = {}) {
     B = 1;
     reasons.push('Budget: unpaid / declined model');
   } else if (budget) {
-    if (budget.unit === 'hourly') {
+    if (budget.unit === 'annual') {
+      // An annual salary means a full-time employment posting, not a freelance gig.
+      B = 1.5;
+      reasons.push('Annual salary — full-time role, not a project budget');
+      redFlags.push(`Salaried full-time posting (${budget.raw})`);
+    } else if (budget.unit === 'hourly') {
       const rate = budget.max;
       if (rate < walk) { B = 1.5; reasons.push(`$${rate}/hr below $${walk} walk-away`); }
       else if (rate < target) { B = 3.5; reasons.push(`$${rate}/hr between walk-away and target`); }
@@ -151,6 +161,10 @@ export function scoreGig(gig, profile = {}) {
   let E = 3;
   if (/\b(dm|pm me|message me)\b/.test(text)) E = 3.5;
   else if (/@|\bemail\b/.test(text)) E = 4;
+  const normalizedPriority = normalizePriority(priority);
+  if (normalizedPriority === 1) E += 0.75;
+  else if (normalizedPriority === 3) E -= 0.75;
+  E = clamp(E);
 
   // ---- F: Timing ----
   const age = daysSince(gig.firstSeen);
@@ -172,7 +186,7 @@ export function scoreGig(gig, profile = {}) {
   else if (score >= 3.0) verdict = 'NEGOTIATE';
   else verdict = 'DECLINE';
 
-  return { score, blocks, reasons, redFlags, verdict, budget };
+  return { score, blocks, reasons, redFlags, verdict, budget, jobSeeker };
 }
 
 const PIPE_LINE = /^- \[( |x)\]\s+(.+)$/;
@@ -185,7 +199,8 @@ function parsePipelineLines(text) {
     const parts = m[2].split('|').map((s) => s.trim());
     const url = parts[0];
     if (!/^https?:\/\//.test(url)) continue;
-    items.push({ url, status: parts[1] || null, title: parts[2] || null });
+    const tier = m[2].match(/\btier:([1-3])\b/)?.[1];
+    items.push({ url, status: parts[1] || null, title: parts[2] || null, priority: tier ? Number(tier) : null });
   }
   return items;
 }
@@ -205,6 +220,7 @@ function parseScanHistory(text) {
       portal: cols[idx('portal')] || null,
       title: cols[idx('title')] || null,
       location: cols[idx('location')] || null,
+      priority: Number.parseInt(cols[idx('priority')], 10),
     };
   }
   return rows;
@@ -241,17 +257,20 @@ export async function scoreAll({ pipelinePath, scanHistoryPath, profilePath, sco
       source: sourceFromUrl(it.url) || h.portal || null,
       firstSeen: h.first_seen || null,
     };
-    const r = scoreGig(gig, profile);
+    const priority = normalizePriority(Number.isInteger(h.priority) ? h.priority : it.priority);
+    const r = scoreGig(gig, profile, priority);
     out[it.url] = {
       title,
       source: gig.source,
       first_seen: gig.firstSeen,
+      priority,
       budget: r.budget,
       score: r.score,
       blocks: r.blocks,
       reasons: r.reasons,
       redFlags: r.redFlags,
       verdict: r.verdict,
+      jobSeeker: r.jobSeeker,
       state: 'estimated',
       report: null,
       scoredAt: new Date().toISOString(),

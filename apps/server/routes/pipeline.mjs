@@ -1,10 +1,24 @@
 import { Router } from 'express';
-import { readPipeline, writePipeline, readScores, readScanHistory, mergePipeline } from '../lib/files.mjs';
+import {
+  mergePipeline,
+  readCandidates,
+  readPipeline,
+  readScanHistory,
+  readScores,
+  readTriage,
+  writePipeline,
+} from '../lib/files.mjs';
 
 const r = Router();
 r.get('/', async (_req, res) => {
-  const [items, scores, history] = await Promise.all([readPipeline(), readScores(), readScanHistory()]);
-  res.json({ items: mergePipeline(items, scores, history) });
+  const [items, scores, history, triage, candidates] = await Promise.all([
+    readPipeline(),
+    readScores(),
+    readScanHistory(),
+    readTriage(),
+    readCandidates(),
+  ]);
+  res.json({ items: mergePipeline(items, scores, history, triage, candidates) });
 });
 r.post('/', async (req, res) => {
   const { url, title = null } = req.body;

@@ -91,6 +91,28 @@ export async function readScores() {
   }
 }
 
+export async function readTriage() {
+  const text = await fs.readFile(paths.triage, 'utf8').catch(() => '');
+  if (!text) return {};
+  try {
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function readCandidates() {
+  const text = await fs.readFile(paths.candidates, 'utf8').catch(() => '');
+  if (!text) return {};
+  try {
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 export async function readScanHistory() {
   const text = await fs.readFile(paths.scanHistory, 'utf8').catch(() => '');
   const rows = {};
@@ -112,22 +134,76 @@ export async function readScanHistory() {
   return rows;
 }
 
-export function mergePipeline(items, scores = {}, history = {}) {
-  return items.map((it) => {
+function isConfirmedEligible(record) {
+  return record?.origin === 'model'
+    && record.eligibility === 'eligible'
+    && Number(record.confidence) >= 0.85
+    && record.intent === 'client_hiring'
+    && ['freelance', 'project', 'contract'].includes(record.engagement)
+    && record.relationship === 'independent'
+    && record.paid === true
+    && Array.isArray(record.evidence)
+    && record.evidence.length > 0
+    && record.fit
+    && typeof record.fit === 'object'
+    && Number.isFinite(record.fit.score)
+    && typeof record.fitFingerprint === 'string'
+    && record.fitFingerprint.length > 0;
+}
+
+export function mergePipeline(items, scores = {}, history = {}, triage = {}, candidates = {}) {
+  const pipelineUrls = new Set(items.map((item) => item.url));
+  const visibleItems = [...items];
+  for (const [url, candidate] of Object.entries(candidates)) {
+    if (pipelineUrls.has(url) || triage[url]?.eligibility === 'eligible') continue;
+    if (!/^https?:\/\//.test(url)) continue;
+    visibleItems.push({ url, status: null, title: candidate?.title || null, checked: false });
+  }
+
+  return visibleItems.map((it) => {
     const s = scores[it.url] || null;
     const h = history[it.url] || null;
+    const t = triage[it.url] || null;
+    const c = candidates[it.url] || null;
+    const confirmed = isConfirmedEligible(t)
+      && s?.eligibility === 'eligible'
+      && s.state === 'evaluated'
+      && Number.isFinite(s.score)
+      && s.fitFingerprint === t.fitFingerprint
+      && Math.abs(s.score - t.fit.score) < 0.001;
+    const triageReasons = Array.isArray(t?.reasonCodes)
+      ? t.reasonCodes
+      : ['legacy_unclassified'];
     return {
       ...it,
-      title: (s && s.title) || (h && h.title) || it.title || it.url,
-      source: (s && s.source) || (h && h.portal) || null,
-      firstSeen: (s && s.first_seen) || (h && h.first_seen) || null,
-      budget: s ? s.budget : null,
-      score: s ? s.score : null,
-      verdict: s ? s.verdict : null,
-      state: s ? s.state : null,
-      reasons: s ? s.reasons : [],
-      redFlags: s ? s.redFlags : [],
+      inPipeline: pipelineUrls.has(it.url),
+      title: (s && s.title) || (c && c.title) || (h && h.title) || it.title || it.url,
+      source: (s && s.source) || (c && c.source) || (h && h.portal) || null,
+      location: (s && s.location) || (c && c.location) || (h && h.location) || null,
+      firstSeen: (s && s.first_seen) || (c && c.firstSeen) || (h && h.first_seen) || null,
+      budget: s?.budget || (c?.compensation ? {
+        raw: c.compensation.raw,
+        min: c.compensation.min,
+        max: c.compensation.max,
+        unit: c.compensation.cadence,
+      } : null),
+      score: confirmed ? s.score : null,
+      verdict: confirmed ? s.verdict : null,
+      blocks: confirmed && s.blocks && typeof s.blocks === 'object' ? s.blocks : null,
+      jobSeeker: t?.intent === 'worker_seeking' || Boolean(s?.jobSeeker),
+      state: confirmed ? 'evaluated' : null,
+      reasons: confirmed && Array.isArray(s.reasons) ? s.reasons : [],
+      redFlags: confirmed && Array.isArray(s.redFlags) ? s.redFlags : [],
       report: s ? s.report : null,
+      eligibility: t?.eligibility || 'uncertain',
+      confidence: Number.isFinite(t?.confidence) ? t.confidence : null,
+      intent: t?.intent || 'unknown',
+      engagement: t?.engagement || 'unknown',
+      relationship: t?.relationship || 'unknown',
+      paid: t?.paid === true ? true : t?.paid === false ? false : null,
+      triageOrigin: t?.origin || null,
+      triageReasons,
+      triageEvidence: Array.isArray(t?.evidence) ? t.evidence : [],
     };
   });
 }
