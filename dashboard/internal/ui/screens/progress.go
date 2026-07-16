@@ -7,8 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/santifer/gig-ops/dashboard/internal/model"
-	"github.com/santifer/gig-ops/dashboard/internal/theme"
+	"github.com/santifer/gig-pilot/dashboard/internal/model"
+	"github.com/santifer/gig-pilot/dashboard/internal/theme"
 )
 
 // ProgressClosedMsg is emitted when the progress screen is dismissed.
@@ -383,7 +383,7 @@ func (m ProgressModel) renderHelp() string {
 	keyStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Text)
 	descStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
 
-	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render("gig-ops")
+	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render("gig-pilot")
 
 	keys := keyStyle.Render("\u2191\u2193") + descStyle.Render(" scroll  ") +
 		keyStyle.Render("PgUp/Dn") + descStyle.Render(" page  ") +

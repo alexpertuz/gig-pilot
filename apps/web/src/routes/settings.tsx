@@ -74,10 +74,10 @@ function Settings() {
           </div>
         )}
         <p className="hint">
-          Set <span className="mono">GIGOPS_AGENT_PROVIDER</span> to choose the server default,{' '}
-          <span className="mono">GIGOPS_CLAUDE_BIN</span> /{' '}
-          <span className="mono">GIGOPS_CODEX_BIN</span> to override CLI paths, or{' '}
-          <span className="mono">GIGOPS_ROOT</span> / <span className="mono">PORT</span> for the server.
+          Set <span className="mono">GIGPILOT_AGENT_PROVIDER</span> to choose the server default,{' '}
+          <span className="mono">GIGPILOT_CLAUDE_BIN</span> /{' '}
+          <span className="mono">GIGPILOT_CODEX_BIN</span> to override CLI paths, or{' '}
+          <span className="mono">GIGPILOT_ROOT</span> / <span className="mono">PORT</span> for the server.
         </p>
       </div>
     </div>

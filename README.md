@@ -1,4 +1,4 @@
-# gig-ops
+# gig-pilot
 
 [English](README.md) | [Español](README.es.md)
 
@@ -116,4 +116,4 @@ Default is **English**. Set `locale: es` in `config/profile.yml` to enable Spani
 
 ## Fork origin
 
-gig-ops is a focused fork of [career-ops](https://github.com/santifer/career-ops) v1.12.0, repurposed from job search to freelance sourcing. The provider plugin system, scanning architecture, dedup engine, and pipeline loop are inherited from that project.
+gig-pilot is a focused fork of [career-ops](https://github.com/santifer/career-ops) v1.12.0, repurposed from job search to freelance sourcing. The provider plugin system, scanning architecture, dedup engine, and pipeline loop are inherited from that project.

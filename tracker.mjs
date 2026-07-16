@@ -39,12 +39,12 @@ import { dirname, resolve } from 'path';
 import { pathToFileURL } from 'url';
 import yaml from 'js-yaml';
 
-const MD_PATH = process.env.GIG_OPS_TRACKER || 'data/leads.md';
-const DB_PATH = process.env.GIG_OPS_TRACKER_DB
+const MD_PATH = process.env.GIG_PILOT_TRACKER || 'data/leads.md';
+const DB_PATH = process.env.GIG_PILOT_TRACKER_DB
   || (MD_PATH.endsWith('.md') ? MD_PATH.slice(0, -3) + '.db' : MD_PATH + '.db');
 
 // SQLite must never open the source of truth itself (an explicit
-// GIG_OPS_TRACKER_DB could point both names at the same file).
+// GIG_PILOT_TRACKER_DB could point both names at the same file).
 if (resolve(MD_PATH) === resolve(DB_PATH)) {
   console.error(`Error: DB path must differ from the markdown path (${MD_PATH}).`);
   process.exit(1);
@@ -114,7 +114,7 @@ function openDb(DatabaseSync) {
 
 function loadStates() {
   if (!existsSync(STATES_PATH)) {
-    console.error(`Error: ${STATES_PATH} not found — cannot validate statuses. Run from the gig-ops root.`);
+    console.error(`Error: ${STATES_PATH} not found — cannot validate statuses. Run from the gig-pilot root.`);
     process.exit(1);
   }
   const doc = yaml.load(readFileSync(STATES_PATH, 'utf-8'));

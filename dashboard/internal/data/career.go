@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/santifer/gig-ops/dashboard/internal/model"
+	"github.com/santifer/gig-pilot/dashboard/internal/model"
 )
 
 var (
@@ -23,12 +23,12 @@ var (
 )
 
 // ParseLeads reads data/leads.md (tab-separated) and returns parsed leads.
-func ParseLeads(gigOpsPath string) []model.Lead {
-	filePath := filepath.Join(gigOpsPath, "data", "leads.md")
+func ParseLeads(gigPilotPath string) []model.Lead {
+	filePath := filepath.Join(gigPilotPath, "data", "leads.md")
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		// Fallback: try root directory
-		filePath = filepath.Join(gigOpsPath, "leads.md")
+		filePath = filepath.Join(gigPilotPath, "leads.md")
 		content, err = os.ReadFile(filePath)
 		if err != nil {
 			return nil
@@ -121,7 +121,7 @@ func ParseLeads(gigOpsPath string) []model.Lead {
 		if leads[i].ReportPath == "" {
 			continue
 		}
-		fullReport := filepath.Join(gigOpsPath, leads[i].ReportPath)
+		fullReport := filepath.Join(gigPilotPath, leads[i].ReportPath)
 		reportContent, err2 := os.ReadFile(fullReport)
 		if err2 != nil {
 			continue
@@ -195,8 +195,8 @@ func NormalizeStatus(raw string) string {
 }
 
 // LoadReportSummary extracts key fields from a gig evaluation report.
-func LoadReportSummary(gigOpsPath, reportPath string) (archetype, tldr string) {
-	fullPath := filepath.Join(gigOpsPath, reportPath)
+func LoadReportSummary(gigPilotPath, reportPath string) (archetype, tldr string) {
+	fullPath := filepath.Join(gigPilotPath, reportPath)
 	content, err := os.ReadFile(fullPath)
 	if err != nil {
 		return
@@ -221,11 +221,11 @@ func LoadReportSummary(gigOpsPath, reportPath string) (archetype, tldr string) {
 }
 
 // UpdateLeadStatus updates the status of a lead in leads.md.
-func UpdateLeadStatus(gigOpsPath string, lead model.Lead, newStatus string) error {
-	filePath := filepath.Join(gigOpsPath, "data", "leads.md")
+func UpdateLeadStatus(gigPilotPath string, lead model.Lead, newStatus string) error {
+	filePath := filepath.Join(gigPilotPath, "data", "leads.md")
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		filePath = filepath.Join(gigOpsPath, "leads.md")
+		filePath = filepath.Join(gigPilotPath, "leads.md")
 		content, err = os.ReadFile(filePath)
 		if err != nil {
 			return err

@@ -12,8 +12,8 @@ test('parseScanLine turns scanner output into structured scope, progress, and su
   };
 
   parseScanLine(state, 'Scanning 2 companies; 9 job boards; 1 local parser; 3 skipped — no provider matched via providers');
-  parseScanLine(state, '::gig-ops-scan::{"type":"source","name":"RemoteOK","completed":4,"total":11,"jobs":38}');
-  parseScanLine(state, '::gig-ops-scan::{"type":"triage","fetched":40,"ruleRejected":25,"modelEvaluated":10,"cached":2,"accepted":4,"quarantined":11,"bySource":{"r/forhire":{"fetched":20,"accepted":4,"rejected":5,"quarantined":11}}}');
+  parseScanLine(state, '::gig-pilot-scan::{"type":"source","name":"RemoteOK","completed":4,"total":11,"jobs":38}');
+  parseScanLine(state, '::gig-pilot-scan::{"type":"triage","fetched":40,"ruleRejected":25,"modelEvaluated":10,"cached":2,"accepted":4,"quarantined":11,"bySource":{"r/forhire":{"fetched":20,"accepted":4,"rejected":5,"quarantined":11}}}');
   parseScanLine(state, 'Total jobs found:      84');
   parseScanLine(state, 'Duplicates:            19 skipped');
   parseScanLine(state, 'New offers added:      7');
@@ -41,7 +41,7 @@ test('scan session retains the completed result and only includes items added by
     readPipeline: async () => items,
     execute: async (_args, events) => {
       events.onLine('Scanning 0 companies; 1 job boards; 0 local parser; 0 skipped — no provider matched via providers');
-      events.onLine('::gig-ops-scan::{"type":"source","name":"RemoteOK","completed":1,"total":1,"jobs":14}');
+      events.onLine('::gig-pilot-scan::{"type":"source","name":"RemoteOK","completed":1,"total":1,"jobs":14}');
       events.onLine('New offers added:      1');
       items = [...items, { url: 'https://remoteok.com/remote-job-1', title: 'Product engineer', source: 'remoteok' }];
       return { code: 0 };

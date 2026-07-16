@@ -2,12 +2,12 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-export const REPO_ROOT = process.env.GIGOPS_ROOT
-  ? path.resolve(process.env.GIGOPS_ROOT)
+export const REPO_ROOT = process.env.GIGPILOT_ROOT
+  ? path.resolve(process.env.GIGPILOT_ROOT)
   : path.dirname(fileURLToPath(import.meta.url));
 
-export const claudeBin = process.env.GIGOPS_CLAUDE_BIN || 'claude';
-export const codexBin = process.env.GIGOPS_CODEX_BIN || 'codex';
+export const claudeBin = process.env.GIGPILOT_CLAUDE_BIN || 'claude';
+export const codexBin = process.env.GIGPILOT_CODEX_BIN || 'codex';
 
 export const AGENT_PROVIDERS = {
   claude: {
@@ -24,7 +24,7 @@ export const AGENT_PROVIDERS = {
   },
 };
 
-export function normalizeProvider(provider = process.env.GIGOPS_AGENT_PROVIDER || 'claude') {
+export function normalizeProvider(provider = process.env.GIGPILOT_AGENT_PROVIDER || 'claude') {
   const id = String(provider || '').trim().toLowerCase();
   if (!AGENT_PROVIDERS[id]) throw new Error(`unknown agent provider: ${provider}`);
   return id;
@@ -83,7 +83,7 @@ function eventText(provider, event) {
 }
 
 export function runAgentText({
-  provider = process.env.GIGOPS_AGENT_PROVIDER || 'claude',
+  provider = process.env.GIGPILOT_AGENT_PROVIDER || 'claude',
   prompt,
   timeoutMs = 300_000,
   spawnImpl = spawn,
@@ -157,7 +157,7 @@ export function runAgentText({
       }
       resolve({
         text,
-        runtimeFingerprint: `${spec.provider}:${process.env.GIGOPS_AGENT_RUNTIME_FINGERPRINT || 'default'}`,
+        runtimeFingerprint: `${spec.provider}:${process.env.GIGPILOT_AGENT_RUNTIME_FINGERPRINT || 'default'}`,
       });
     });
   });

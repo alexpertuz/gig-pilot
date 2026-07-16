@@ -47,7 +47,7 @@ start('api', process.execPath, ['apps/server/index.mjs'], {
   env: {
     ...process.env,
     PORT: apiPort,
-    GIGOPS_ROOT: process.env.GIGOPS_ROOT || repoRoot,
+    GIGPILOT_ROOT: process.env.GIGPILOT_ROOT || repoRoot,
   },
 });
 

@@ -1,6 +1,6 @@
 # GigPilot Web UI
 
-A premium web front-end for gig-ops. Everything you can do from the terminal —
+A premium web front-end for gig-pilot. Everything you can do from the terminal —
 scan sources, evaluate gigs, generate proposals, track leads, edit config — is
 available in the browser, while the flat files stay the source of truth and AI
 modes still run through a local agent CLI such as **Claude Code** or **Codex**.
@@ -38,10 +38,10 @@ Then open http://localhost:5273 (dev) or http://127.0.0.1:4317 (prod).
 | Var | Default | Purpose |
 |-----|---------|---------|
 | `PORT` | `4317` | Express port |
-| `GIGOPS_ROOT` | repo root (auto) | Override the gig-ops repo location |
-| `GIGOPS_AGENT_PROVIDER` | `claude` | Default agent provider: `claude` or `codex` |
-| `GIGOPS_CLAUDE_BIN` | `claude` | Path to the Claude Code CLI |
-| `GIGOPS_CODEX_BIN` | `codex` | Path to the Codex CLI |
+| `GIGPILOT_ROOT` | repo root (auto) | Override the gig-pilot repo location |
+| `GIGPILOT_AGENT_PROVIDER` | `claude` | Default agent provider: `claude` or `codex` |
+| `GIGPILOT_CLAUDE_BIN` | `claude` | Path to the Claude Code CLI |
+| `GIGPILOT_CODEX_BIN` | `codex` | Path to the Codex CLI |
 | `NODE_ENV` | — | Set to `production` to static-serve `apps/web/dist` |
 
 ## AI actions require a local agent CLI

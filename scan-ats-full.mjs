@@ -33,15 +33,15 @@ import path from 'path';
 import yaml from 'js-yaml';
 
 import { makeHttpCtx, fetchJson } from './providers/_http.mjs';
-import greenhouse from './providers/greenhouse.mjs';
-import lever from './providers/lever.mjs';
-import ashby from './providers/ashby.mjs';
-import workday from './providers/workday.mjs';
+import greenhouse from './providers/ats-archive/greenhouse.mjs';
+import lever from './providers/ats-archive/lever.mjs';
+import ashby from './providers/ats-archive/ashby.mjs';
+import workday from './providers/ats-archive/workday.mjs';
 import { buildTitleFilter, buildLocationFilter, loadSeenUrls, appendToPipeline, appendToScanHistory } from './scan.mjs';
 
 // ── Config ──────────────────────────────────────────────────────────
 
-const PORTALS_PATH = process.env.GIG_OPS_SOURCES || 'sources.yml';
+const PORTALS_PATH = process.env.GIG_PILOT_SOURCES || 'sources.yml';
 const PIPELINE_PATH = 'data/pipeline.md';
 const CACHE_DIR = 'data/cache/ats-companies';
 const CACHE_TTL_HOURS = 24;
@@ -335,7 +335,7 @@ async function main() {
     }
   }
 
-  console.log(`\n→ Run /gig-ops pipeline to evaluate new offers.`);
+  console.log(`\n→ Run /gig-pilot pipeline to evaluate new offers.`);
 }
 
 // Only run main() when invoked directly, not when imported by tests.

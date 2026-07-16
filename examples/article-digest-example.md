@@ -1,6 +1,6 @@
 # Article Digest -- Proof Points
 
-Compact proof points from portfolio projects. Read by gig-ops by /gig at evaluation time.
+Compact proof points from portfolio projects. Read by gig-pilot by /gig at evaluation time.
 
 ---
 

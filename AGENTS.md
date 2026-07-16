@@ -1,6 +1,6 @@
-# Gig-Ops Freelance Pipeline
+# Gig-Pilot Freelance Pipeline
 
-**gig-ops** is a local, AI-powered freelance pipeline. It aggregates on-demand and collaboration postings, evaluates them for fit and legitimacy, generates tailored proposals, and tracks your outreach. No database. No server. Git is the sync layer.
+**gig-pilot** is a local, AI-powered freelance pipeline. It aggregates on-demand and collaboration postings, evaluates them for fit and legitimacy, generates tailored proposals, and tracks your outreach. No database. No server. Git is the sync layer.
 
 It is designed to be driven from the terminal as a Claude Code (or compatible) plugin.
 
@@ -155,7 +155,7 @@ gig_boards:
       - programming
 ```
 
-## Updating gig-ops
+## Updating gig-pilot
 
 ```bash
 node update-system.mjs

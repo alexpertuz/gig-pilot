@@ -10,7 +10,7 @@ A solo freelancer (developer/designer) running their own gig-hunting operation f
 
 ## Product Purpose
 
-GigPilot is the local web UI for the gig-ops pipeline: scan sources for gigs, triage the inbox, evaluate fit with AI, read evaluation reports, and track leads to a won contract. Success = the user always knows the next action and can decide on a gig in seconds.
+GigPilot is the local web UI for the gig-pilot pipeline: scan sources for gigs, triage the inbox, evaluate fit with AI, read evaluation reports, and track leads to a won contract. Success = the user always knows the next action and can decide on a gig in seconds.
 
 ## Brand Personality
 

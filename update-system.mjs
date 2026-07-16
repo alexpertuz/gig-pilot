@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * update-system.mjs — Safe auto-updater for gig-ops
+ * update-system.mjs — Safe auto-updater for gig-pilot
  *
  * Updates ONLY system layer files (modes, scripts, dashboard, templates).
  * NEVER touches user data (cv.md, profile.yml, _profile.md, data/, reports/).
@@ -23,12 +23,12 @@ import { fileURLToPath, pathToFileURL } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = __dirname;
 
-const CANONICAL_REPO = 'https://github.com/antoniopertuz/gig-ops.git';
-const RAW_VERSION_URL = 'https://raw.githubusercontent.com/antoniopertuz/gig-ops/main/VERSION';
-const RELEASES_API = 'https://api.github.com/repos/antoniopertuz/gig-ops/releases/latest';
+const CANONICAL_REPO = 'https://github.com/antoniopertuz/gig-pilot.git';
+const RAW_VERSION_URL = 'https://raw.githubusercontent.com/antoniopertuz/gig-pilot/main/VERSION';
+const RELEASES_API = 'https://api.github.com/repos/antoniopertuz/gig-pilot/releases/latest';
 
 // Matches a semver, with or without a leading `v` and an optional
-// Release Please component prefix (e.g. `gig-ops-v1.9.0` → `1.9.0`).
+// Release Please component prefix (e.g. `gig-pilot-v1.9.0` → `1.9.0`).
 // Anchoring on `(?:^|-)` lets the releases-API fallback parse our tags,
 // which Release Please always prefixes with the component name.
 export const SEMVER_RE = /(?:^|-)v?(\d+\.\d+\.\d+)$/i;
@@ -154,15 +154,15 @@ const SYSTEM_PATHS = [
   'DOCKER.md',
 ];
 
-const CANONICAL_SKILL_PATH = '.agents/skills/gig-ops/SKILL.md';
+const CANONICAL_SKILL_PATH = '.agents/skills/gig-pilot/SKILL.md';
 const SKILL_ENTRYPOINTS = [
   {
-    path: '.claude/skills/gig-ops/SKILL.md',
-    pointer: '../../../.agents/skills/gig-ops/SKILL.md',
+    path: '.claude/skills/gig-pilot/SKILL.md',
+    pointer: '../../../.agents/skills/gig-pilot/SKILL.md',
   },
   {
-    path: '.opencode/skills/gig-ops/SKILL.md',
-    pointer: '../../../.agents/skills/gig-ops/SKILL.md',
+    path: '.opencode/skills/gig-pilot/SKILL.md',
+    pointer: '../../../.agents/skills/gig-pilot/SKILL.md',
   },
 ];
 
@@ -428,7 +428,7 @@ async function check() {
     curlGet(RAW_VERSION_URL),
     curlGet(RELEASES_API, [
       '--header', 'Accept: application/vnd.github.v3+json',
-      '--header', 'User-Agent: gig-ops-update-checker',
+      '--header', 'User-Agent: gig-pilot-update-checker',
     ]),
   ]);
 
@@ -492,7 +492,7 @@ async function check() {
 async function apply() {
   const local = localVersion();
   const initialStatusPaths = new Set(gitStatusEntries().map(entry => entry.path));
-  const isReexec = process.env.GIG_OPS_UPDATE_REEXEC === '1';
+  const isReexec = process.env.GIG_PILOT_UPDATE_REEXEC === '1';
 
   // Check for lock
   const lockFile = join(ROOT, '.update-lock');
@@ -512,7 +512,7 @@ async function apply() {
     // invisible to `git branch` and can be lost if the update aborts.
     // `git stash create` builds a stash object without touching the stash
     // stack, giving a recoverable ref for WIP even if the update fails.
-    const backupBranch = process.env.GIG_OPS_UPDATE_BACKUP_BRANCH || updateBackupBranchName(local);
+    const backupBranch = process.env.GIG_PILOT_UPDATE_BACKUP_BRANCH || updateBackupBranchName(local);
     if (!isReexec) {
       try {
         const wip = git('stash', 'create');
@@ -540,8 +540,8 @@ async function apply() {
           timeout: 120000,
           env: {
             ...process.env,
-            GIG_OPS_UPDATE_REEXEC: '1',
-            GIG_OPS_UPDATE_BACKUP_BRANCH: backupBranch,
+            GIG_PILOT_UPDATE_REEXEC: '1',
+            GIG_PILOT_UPDATE_BACKUP_BRANCH: backupBranch,
           },
         });
         return;

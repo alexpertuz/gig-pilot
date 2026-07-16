@@ -26,7 +26,7 @@ const session = createScanSession({
   readPipeline: readPipelineView,
   execute: (args, events) => runNode('scan.mjs', args, {
     ...events,
-    env: { GIG_OPS_SCAN_EVENTS: '1' },
+    env: { GIG_PILOT_SCAN_EVENTS: '1' },
   }),
 });
 

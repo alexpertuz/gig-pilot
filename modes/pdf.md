@@ -183,7 +183,7 @@ CV PDF generated: output/{path}
 
 Want a cover letter for this role too?
 - Say "yes" or "cover letter" to generate one now
-- Or run `/gig-ops cover {slug}` later
+- Or run `/gig-pilot cover {slug}` later
 ```
 
 Apply `voice-dna.md` (if present) to the cover letter — full guardrail, conversational voice included (Tier 1 + Tier 2). The CV PDF itself stays Tier 1 only (formal ATS register). See `_shared.md` → Voice DNA.

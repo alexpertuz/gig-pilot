@@ -11,7 +11,7 @@
  * If duplicate with higher score → update in-place, update report link
  * Validates status against states.yml (rejects non-canonical, logs warning)
  *
- * Run: node gig-ops/merge-tracker.mjs [--dry-run] [--verify]
+ * Run: node gig-pilot/merge-tracker.mjs [--dry-run] [--verify]
  */
 
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, renameSync, existsSync, rmSync, statSync, realpathSync } from 'fs';
@@ -23,29 +23,29 @@ import { tmpdir } from 'os';
 import { normalizeReportLink as normalizeLink } from './tracker-links.mjs';
 import { roleFuzzyMatch } from './role-matcher.mjs';
 
-const GIG_OPS = dirname(fileURLToPath(import.meta.url));
+const GIG_PILOT = dirname(fileURLToPath(import.meta.url));
 // Support both layouts: data/leads.md (boilerplate) and applications.md (original).
-// GIG_OPS_TRACKER overrides the path (used by tests and non-standard layouts).
-const APPS_FILE_RAW = process.env.GIG_OPS_TRACKER
-  ? process.env.GIG_OPS_TRACKER
-  : existsSync(join(GIG_OPS, 'data/leads.md'))
-    ? join(GIG_OPS, 'data/leads.md')
-    : join(GIG_OPS, 'applications.md');
+// GIG_PILOT_TRACKER overrides the path (used by tests and non-standard layouts).
+const APPS_FILE_RAW = process.env.GIG_PILOT_TRACKER
+  ? process.env.GIG_PILOT_TRACKER
+  : existsSync(join(GIG_PILOT, 'data/leads.md'))
+    ? join(GIG_PILOT, 'data/leads.md')
+    : join(GIG_PILOT, 'applications.md');
 const APPS_FILE = canonicalizeTrackerPath(APPS_FILE_RAW);
 const TRACKER_DIR = dirname(APPS_FILE);
-// GIG_OPS_ADDITIONS overrides the additions dir (used by tests, mirrors GIG_OPS_TRACKER).
-const ADDITIONS_DIR = process.env.GIG_OPS_ADDITIONS
-  ? process.env.GIG_OPS_ADDITIONS
-  : join(GIG_OPS, 'batch/tracker-additions');
+// GIG_PILOT_ADDITIONS overrides the additions dir (used by tests, mirrors GIG_PILOT_TRACKER).
+const ADDITIONS_DIR = process.env.GIG_PILOT_ADDITIONS
+  ? process.env.GIG_PILOT_ADDITIONS
+  : join(GIG_PILOT, 'batch/tracker-additions');
 const MERGED_DIR = join(ADDITIONS_DIR, 'merged');
 const DRY_RUN = process.argv.includes('--dry-run');
 const VERIFY = process.argv.includes('--verify');
 const MIGRATE = process.argv.includes('--migrate');
-const MERGE_HOLD_MS = Number(process.env.GIG_OPS_MERGE_HOLD_MS) || 0;
-const MERGE_READY_IPC = process.env.GIG_OPS_MERGE_READY_IPC === '1';
+const MERGE_HOLD_MS = Number(process.env.GIG_PILOT_MERGE_HOLD_MS) || 0;
+const MERGE_READY_IPC = process.env.GIG_PILOT_MERGE_READY_IPC === '1';
 
 const trackerLockKey = createHash('sha256').update(APPS_FILE).digest('hex').slice(0, 16);
-const TRACKER_LOCK_DIR = resolveTrackerLockDir(process.env.GIG_OPS_TRACKER_LOCK, trackerLockKey);
+const TRACKER_LOCK_DIR = resolveTrackerLockDir(process.env.GIG_PILOT_TRACKER_LOCK, trackerLockKey);
 
 // The reports/ dir sits at the repo root, which is the tracker's parent in the
 // data/ layout (data/leads.md) and the tracker's own dir at root layout.
@@ -65,7 +65,7 @@ const REPORTS_ROOT = basename(TRACKER_DIR) === 'data' ? dirname(TRACKER_DIR) : T
 const normalizeReportLink = (reportField) => normalizeLink(reportField, TRACKER_DIR, REPORTS_ROOT);
 
 // Ensure required directories exist (fresh setup)
-mkdirSync(join(GIG_OPS, 'data'), { recursive: true });
+mkdirSync(join(GIG_PILOT, 'data'), { recursive: true });
 mkdirSync(ADDITIONS_DIR, { recursive: true });
 
 /**
@@ -106,10 +106,10 @@ function pathIsInside(childPath, parentDir) {
 /**
  * Validate and resolve the tracker lock directory.
  *
- * `GIG_OPS_TRACKER_LOCK` exists for tests and unusual local layouts, but the
+ * `GIG_PILOT_TRACKER_LOCK` exists for tests and unusual local layouts, but the
  * merge script later removes the lock directory recursively. To keep that safe,
  * env-provided lock paths must be absolute, live under the OS temp directory,
- * and use the gig-ops lock-name prefix. Invalid values are ignored and the
+ * and use the gig-pilot lock-name prefix. Invalid values are ignored and the
  * deterministic temp-dir default is used instead.
  *
  * @param {string|undefined} envValue - Optional lock path override.
@@ -118,14 +118,14 @@ function pathIsInside(childPath, parentDir) {
  */
 function resolveTrackerLockDir(envValue, lockKey) {
   const tmpRoot = realpathSync(tmpdir());
-  const fallback = join(tmpRoot, `gig-ops-merge-tracker-${lockKey}.lock`);
+  const fallback = join(tmpRoot, `gig-pilot-merge-tracker-${lockKey}.lock`);
   if (!envValue || !isAbsolute(envValue)) return fallback;
 
   const candidate = resolve(envValue);
   const parentDir = dirname(candidate);
   const canonicalParent = existsSync(parentDir) ? realpathSync(parentDir) : resolve(parentDir);
   if (!pathIsInside(canonicalParent, tmpRoot)) return fallback;
-  if (!basename(candidate).startsWith('gig-ops-merge-tracker-')) return fallback;
+  if (!basename(candidate).startsWith('gig-pilot-merge-tracker-')) return fallback;
   return candidate;
 }
 
@@ -135,7 +135,7 @@ function resolveTrackerLockDir(envValue, lockKey) {
  * This is used in two places:
  * - the lock retry loop, where waiting briefly avoids a tight CPU spin while
  *   another `merge-tracker.mjs` process owns the tracker lock;
- * - the regression test hook (`GIG_OPS_MERGE_HOLD_MS`), which deliberately
+ * - the regression test hook (`GIG_PILOT_MERGE_HOLD_MS`), which deliberately
  *   holds the first merge after it reads `applications.md` so a second merge can
  *   try to enter the same critical section.
  *
@@ -318,9 +318,9 @@ function writeFileAtomic(path, content) {
 let trackerLock;
 try {
   trackerLock = await acquireTrackerLock(TRACKER_LOCK_DIR, {
-    timeoutMs: Number(process.env.GIG_OPS_TRACKER_LOCK_TIMEOUT_MS) || 60_000,
-    retryMs: Number(process.env.GIG_OPS_TRACKER_LOCK_RETRY_MS) || 75,
-    staleMs: Number(process.env.GIG_OPS_TRACKER_LOCK_STALE_MS) || 10 * 60_000,
+    timeoutMs: Number(process.env.GIG_PILOT_TRACKER_LOCK_TIMEOUT_MS) || 60_000,
+    retryMs: Number(process.env.GIG_PILOT_TRACKER_LOCK_RETRY_MS) || 75,
+    staleMs: Number(process.env.GIG_PILOT_TRACKER_LOCK_STALE_MS) || 10 * 60_000,
   });
   process.once('exit', () => trackerLock?.release());
   if (trackerLock.waitMs > 0 || trackerLock.staleRecovered) {
@@ -618,7 +618,7 @@ if (MIGRATE) {
     console.log(`🔎 Migration (dry-run): ${changed} row(s) would be rewritten in ${basename(APPS_FILE)}`);
   } else {
     writeFileAtomic(APPS_FILE, migrated.join('\n'));
-    console.log(`✅ Migration: rewrote ${changed} report link(s) in ${basename(APPS_FILE)} relative to ${TRACKER_DIR === GIG_OPS ? 'repo root' : 'data/'}`);
+    console.log(`✅ Migration: rewrote ${changed} report link(s) in ${basename(APPS_FILE)} relative to ${TRACKER_DIR === GIG_PILOT ? 'repo root' : 'data/'}`);
   }
   process.exit(0);
 }
@@ -795,7 +795,7 @@ trackerLock.release();
 if (VERIFY && !DRY_RUN) {
   console.log('\n--- Running verification ---');
   try {
-    execFileSync('node', [join(GIG_OPS, 'verify-pipeline.mjs')], { stdio: 'inherit' });
+    execFileSync('node', [join(GIG_PILOT, 'verify-pipeline.mjs')], { stdio: 'inherit' });
   } catch (e) {
     process.exit(1);
   }

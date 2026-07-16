@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Test detect-reposts against a fixture scan-history.tsv via
-// GIG_OPS_SCAN_HISTORY. Verifies (a) a Reddit gig reposted under two
+// GIG_PILOT_SCAN_HISTORY. Verifies (a) a Reddit gig reposted under two
 // permalinks in the same subreddit is detected despite an empty company
 // column, and (b) an unrelated title in the same subreddit is NOT merged.
 import { execFileSync } from 'child_process';
@@ -27,7 +27,7 @@ if (posterFromUrl('https://www.reddit.com/u/janedev') === 'u/janedev')
 
 // integration: fixture history. status MUST be 'added' — scan.mjs's history
 // vocabulary and the detector's filter both key on it.
-const dir = mkdtempSync(join(tmpdir(), 'gigops-reposts-'));
+const dir = mkdtempSync(join(tmpdir(), 'gigpilot-reposts-'));
 const hist = join(dir, 'scan-history.tsv');
 const H = 'url\tfirst_seen\tportal\ttitle\tcompany\tstatus\tlocation\n';
 const rows = [
@@ -41,7 +41,7 @@ writeFileSync(hist, H + rows);
 
 try {
   const out = execFileSync('node', [SCRIPT], {
-    env: { ...process.env, GIG_OPS_SCAN_HISTORY: hist },
+    env: { ...process.env, GIG_PILOT_SCAN_HISTORY: hist },
     encoding: 'utf-8',
   });
   if (/React developer/i.test(out)) pass('detects the reposted React gig');

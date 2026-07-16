@@ -66,4 +66,4 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const PORT = process.env.PORT || 4317;
-app.listen(PORT, '127.0.0.1', () => console.log(`gig-ops UI server on http://127.0.0.1:${PORT}`));
+app.listen(PORT, '127.0.0.1', () => console.log(`gig-pilot UI server on http://127.0.0.1:${PORT}`));

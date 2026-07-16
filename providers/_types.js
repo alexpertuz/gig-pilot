@@ -1,6 +1,6 @@
 // providers/_types.js
 //
-// Documentation-only JSDoc types for the gig-ops provider contract.
+// Documentation-only JSDoc types for the gig-pilot provider contract.
 // This file is NOT imported at runtime — it's a catalog for tooling and documentation.
 // Providers must implement the Provider interface below.
 //

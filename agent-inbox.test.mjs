@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Standalone test for agent-inbox.mjs: add → list → resolve round-trip
-// against a throwaway inbox file (GIG_OPS_INBOX override), so it never
+// against a throwaway inbox file (GIG_PILOT_INBOX override), so it never
 // touches the real data/agent-inbox.md.
 import { execFileSync } from 'child_process';
 import { mkdtempSync, rmSync, readFileSync, existsSync } from 'fs';
@@ -15,11 +15,11 @@ let passed = 0, failed = 0;
 const pass = (m) => { console.log(`  ✅ ${m}`); passed++; };
 const fail = (m) => { console.log(`  ❌ ${m}`); failed++; };
 
-const dir = mkdtempSync(join(tmpdir(), 'gigops-inbox-'));
+const dir = mkdtempSync(join(tmpdir(), 'gigpilot-inbox-'));
 const inbox = join(dir, 'agent-inbox.md');
 const run = (args) =>
   execFileSync('node', [SCRIPT, ...args], {
-    env: { ...process.env, GIG_OPS_INBOX: inbox },
+    env: { ...process.env, GIG_PILOT_INBOX: inbox },
     encoding: 'utf-8',
   });
 

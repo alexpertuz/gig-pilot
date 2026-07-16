@@ -1,12 +1,12 @@
 # Mode: update — Interactive System Update
 
-When the user runs `/gig-ops update`, execute this interactive update flow.
+When the user runs `/gig-pilot update`, execute this interactive update flow.
 
 ## Step 1 — Check for Updates
 
 Run `node update-system.mjs check` and parse the JSON output.
 
-- If `up-to-date`: Tell the user "gig-ops is up to date (v{version})." and stop.
+- If `up-to-date`: Tell the user "gig-pilot is up to date (v{version})." and stop.
 - If `offline`: Tell the user "Cannot reach GitHub to check for updates. Try again later." and stop.
 - If `dismissed`: Tell the user "Update check was previously dismissed. Clearing the dismissal and re-checking now." Remove `.update-dismissed`, then re-run `node update-system.mjs check` and branch on the new status.
 - If `update-available`: Continue to Step 2.
@@ -16,7 +16,7 @@ Run `node update-system.mjs check` and parse the JSON output.
 Show the user what will change. Run:
 
 ```bash
-git fetch https://github.com/santifer/gig-ops.git main || {
+git fetch https://github.com/santifer/gig-pilot.git main || {
   echo "Failed to fetch latest changes. Cannot generate an accurate diff preview."
   exit 1
 }
@@ -59,22 +59,22 @@ Before applying, check if the update might affect the user's customizations:
 4. **Check for scoring changes**: If the "Scoring System" section changed, note it:
    > "ℹ️ The scoring system was updated. Scores in future evaluations may differ slightly from previous ones."
 5. **Check for new mode files**: If new modes were added (files in `modes/` that don't exist locally), mention them:
-   > "✨ New modes available: {list}. Run `/gig-ops` to see all commands."
+   > "✨ New modes available: {list}. Run `/gig-pilot` to see all commands."
 
 ## Step 4 — Confirm and Apply
 
 Ask the user for confirmation:
-> "Ready to update. Apply changes? (This can be rolled back with `/gig-ops update rollback`)"
+> "Ready to update. Apply changes? (This can be rolled back with `/gig-pilot update rollback`)"
 
 If yes:
 1. Capture the current commit as a run-specific pre-update baseline before apply runs, e.g. `PRE_UPDATE_REF=$(git rev-parse HEAD)`. Don't rely on `backup-pre-update-{local}` alone — `update-system.mjs apply` reuses that branch if it already exists, so it may point at an older snapshot.
 2. Run `node update-system.mjs apply`
    - If the command exits with a non-zero code, treat apply as failed. Show the captured output and offer:
-     > "⚠️ Update apply failed. Want me to show the full error, or try `/gig-ops update rollback`?"
+     > "⚠️ Update apply failed. Want me to show the full error, or try `/gig-pilot update rollback`?"
    - Stop the flow here if apply failed — do not run doctor or reconciliation on a partially-applied update.
 3. Run `node doctor.mjs` to validate the installation
    - If the command exits with a non-zero code, treat validation as failed. Show the captured output and offer:
-     > "⚠️ Validation failed after update. Want me to show the full error, or roll back with `/gig-ops update rollback`?"
+     > "⚠️ Validation failed after update. Want me to show the full error, or roll back with `/gig-pilot update rollback`?"
    - Stop the flow here if validation failed — do not run reconciliation or show the success message.
 4. If Step 3 flagged archetype/scoring changes, reconcile `modes/_profile.md` against the new `modes/_shared.md`:
    - Read both the pre-update version (`git show $PRE_UPDATE_REF:modes/_shared.md`) and the post-update version of `modes/_shared.md`.
@@ -94,11 +94,11 @@ If yes:
 
 If no:
 1. Run `node update-system.mjs dismiss`
-2. Tell the user they can run `/gig-ops update` anytime to check again.
+2. Tell the user they can run `/gig-pilot update` anytime to check again.
 
 ## Step 5 — Rollback (if requested)
 
-If the user says "rollback" or runs `/gig-ops update rollback`:
+If the user says "rollback" or runs `/gig-pilot update rollback`:
 1. Run `node update-system.mjs rollback`
 2. Show what was restored.
 

@@ -345,7 +345,7 @@ New added to pipeline.md: N
   + {company} | {title} | {query_name}
   ...
 
-→ Run /gig-ops pipeline to evaluate the new offers.
+→ Run /gig-pilot pipeline to evaluate the new offers.
 ```
 
 ## Managing careers_url

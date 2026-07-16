@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * gemini-eval.mjs — Gemini-powered Job Offer Evaluator for gig-ops
+ * gemini-eval.mjs — Gemini-powered Job Offer Evaluator for gig-pilot
  *
  * A free-tier alternative to the Claude-based pipeline.
  * Reads evaluation logic from modes/gig.md + modes/_shared.md,
@@ -55,7 +55,7 @@ const PATHS = {
   shared:      join(ROOT, 'modes', '_shared.md'),
   oferta:      join(ROOT, 'modes', 'oferta.md'),
   // Canonical skill path referenced in Issue #344
-  evaluate:    join(ROOT, '.claude', 'skills', 'gig-ops', 'SKILL.md'),
+  evaluate:    join(ROOT, '.claude', 'skills', 'gig-pilot', 'SKILL.md'),
   cv:          join(ROOT, 'cv.md'),
   profile:     join(ROOT, 'modes', '_profile.md'),
   profileYml:  join(ROOT, 'config', 'profile.yml'),
@@ -72,7 +72,7 @@ const args = process.argv.slice(2);
 if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
   console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║           gig-ops — Gemini Evaluator (free-tier)             ║
+║           gig-pilot — Gemini Evaluator (free-tier)             ║
 ╚══════════════════════════════════════════════════════════════════╝
 
   Evaluate a job offer using Google Gemini instead of Claude.
@@ -200,7 +200,7 @@ function validateEvaluationShape(text) {
   }
 
   if (issues.length > 0) {
-    throw new Error(`Gemini returned an invalid gig-ops report: ${issues.join('; ')}`);
+    throw new Error(`Gemini returned an invalid gig-pilot report: ${issues.join('; ')}`);
   }
 }
 
@@ -245,7 +245,7 @@ const profileYml     = readFile(PATHS.profileYml,  'config/profile.yml');
 // ---------------------------------------------------------------------------
 // Build the system prompt (mirrors the Claude skill router logic)
 // ---------------------------------------------------------------------------
-const systemPrompt = `You are gig-ops, an AI-powered job search assistant.
+const systemPrompt = `You are gig-pilot, an AI-powered job search assistant.
 You evaluate job offers against the user's CV using a structured A-G scoring system.
 
 Your evaluation methodology is defined below. Follow it exactly.

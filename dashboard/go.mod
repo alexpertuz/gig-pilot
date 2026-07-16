@@ -1,4 +1,4 @@
-module github.com/santifer/gig-ops/dashboard
+module github.com/santifer/gig-pilot/dashboard
 
 go 1.24.2
 

@@ -8,8 +8,8 @@ Show the interview intelligence guide for the following company:
 
 $ARGUMENTS
 
-Load the gig-ops skill:
+Load the gig-pilot skill:
 
 ```javascript
-skill({ name: "gig-ops" })
+skill({ name: "gig-pilot" })
 ```

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * detect-reposts.mjs — Repost Detector for gig-ops
+ * detect-reposts.mjs — Repost Detector for gig-pilot
  *
  * Reads data/scan-history.tsv, groups rows by a poster/source bucket
  * (company for board gigs, subreddit for Reddit gigs), fuzzy-matches gig
@@ -27,9 +27,9 @@ import { fileURLToPath, pathToFileURL } from 'url';
 
 import { roleFuzzyMatch } from './role-matcher.mjs';
 
-const GIG_OPS = dirname(fileURLToPath(import.meta.url));
-const SCAN_HISTORY_PATH = process.env.GIG_OPS_SCAN_HISTORY
-  || join(GIG_OPS, 'data/scan-history.tsv');
+const GIG_PILOT = dirname(fileURLToPath(import.meta.url));
+const SCAN_HISTORY_PATH = process.env.GIG_PILOT_SCAN_HISTORY
+  || join(GIG_PILOT, 'data/scan-history.tsv');
 const DEFAULT_WINDOW_DAYS = 90;
 
 // Best-effort poster from a URL: only reddit /u/<name> or /user/<name> profile
@@ -258,7 +258,7 @@ function buildRepostCluster(clusterRows, windowDays) {
 // --- Summary mode ---
 function printSummary(clusters) {
   console.log(`\n${'='.repeat(78)}`);
-  console.log('  Repost Detector — gig-ops');
+  console.log('  Repost Detector — gig-pilot');
   console.log(`  window: ${windowDays} days | clusters: ${clusters.length}`);
   console.log(`${'='.repeat(78)}\n`);
 

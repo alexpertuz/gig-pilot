@@ -1,4 +1,4 @@
-# gig-ops Scoring System
+# gig-pilot Scoring System
 
 <!-- Imported by modes/gig.md and modes/auto-pipeline.md. Do not invoke directly. -->
 

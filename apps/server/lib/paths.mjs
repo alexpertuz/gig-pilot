@@ -3,8 +3,8 @@ import path from 'node:path';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 // apps/server/lib -> repo root is three levels up
-export const REPO_ROOT = process.env.GIGOPS_ROOT
-  ? path.resolve(process.env.GIGOPS_ROOT)
+export const REPO_ROOT = process.env.GIGPILOT_ROOT
+  ? path.resolve(process.env.GIGPILOT_ROOT)
   : path.resolve(here, '..', '..', '..');
 
 export const paths = {
@@ -19,5 +19,5 @@ export const paths = {
   scores: path.join(REPO_ROOT, 'data', 'scores.json'),
 };
 
-export const claudeBin = process.env.GIGOPS_CLAUDE_BIN || 'claude';
-export const codexBin = process.env.GIGOPS_CODEX_BIN || 'codex';
+export const claudeBin = process.env.GIGPILOT_CLAUDE_BIN || 'claude';
+export const codexBin = process.env.GIGPILOT_CODEX_BIN || 'codex';

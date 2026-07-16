@@ -46,7 +46,7 @@ const parseYaml = yaml.load;
 
 // ── Config ──────────────────────────────────────────────────────────
 
-const PORTALS_PATH = process.env.GIG_OPS_SOURCES || 'sources.yml';
+const PORTALS_PATH = process.env.GIG_PILOT_SOURCES || 'sources.yml';
 const SCAN_HISTORY_PATH = 'data/scan-history.tsv';
 const PIPELINE_PATH = 'data/pipeline.md';
 const PROFILE_PATH = 'config/profile.yml';
@@ -57,7 +57,7 @@ const DERIVED_PATHS = {
 };
 
 export function formatScanProgressEvent({ name, completed, total, jobsInspected }) {
-  return `::gig-ops-scan::${JSON.stringify({
+  return `::gig-pilot-scan::${JSON.stringify({
     type: 'source',
     name,
     completed,
@@ -73,7 +73,7 @@ export function formatTriageProgressEvent(metrics) {
     rejected: Number(values.rejected) || 0,
     quarantined: Number(values.quarantined) || 0,
   }]));
-  return `::gig-ops-scan::${JSON.stringify({
+  return `::gig-pilot-scan::${JSON.stringify({
     type: 'triage',
     fetched: Number(metrics.fetched) || 0,
     ruleRejected: Number(metrics.ruleRejected) || 0,
@@ -87,12 +87,12 @@ export function formatTriageProgressEvent(metrics) {
 
 export function parseTriageOptions(args = [], env = process.env) {
   const modeArg = args.find((arg) => arg.startsWith('--triage-mode='));
-  const mode = modeArg?.split('=')[1] || env.GIGOPS_TRIAGE_MODE || 'enforced';
+  const mode = modeArg?.split('=')[1] || env.GIGPILOT_TRIAGE_MODE || 'enforced';
   if (mode !== 'enforced' && mode !== 'shadow') {
     throw new Error(`triage mode must be "enforced" or "shadow", received: ${mode}`);
   }
   const providerArg = args.find((arg) => arg.startsWith('--agent-provider='));
-  const provider = providerArg?.split('=')[1] || env.GIGOPS_AGENT_PROVIDER || 'claude';
+  const provider = providerArg?.split('=')[1] || env.GIGPILOT_AGENT_PROVIDER || 'claude';
   return { mode, provider, reclassify: args.includes('--reclassify') };
 }
 
@@ -661,10 +661,10 @@ export function formatScanHistoryRow(offer, date, status = 'added') {
 }
 
 // Standard skeleton created on fresh install — matches the format documented
-// in modes/pipeline.md and expected by /gig-ops pipeline.
+// in modes/pipeline.md and expected by /gig-pilot pipeline.
 const PIPELINE_SKELETON = `# Pipeline — Pending URLs
 
-Paste job URLs below as \`- [ ] {url}\` then run \`/gig-ops pipeline\`.
+Paste job URLs below as \`- [ ] {url}\` then run \`/gig-pilot pipeline\`.
 
 ## Pending
 
@@ -1095,7 +1095,7 @@ async function main() {
     } finally {
       completedTargets += 1;
       jobsInspected += sourceJobs;
-      if (process.env.GIG_OPS_SCAN_EVENTS === '1') {
+      if (process.env.GIG_PILOT_SCAN_EVENTS === '1') {
         console.log(formatScanProgressEvent({
           name: company.name,
           completed: completedTargets,
@@ -1176,7 +1176,7 @@ async function main() {
     }
   }
 
-  if (process.env.GIG_OPS_SCAN_EVENTS === '1') {
+  if (process.env.GIG_PILOT_SCAN_EVENTS === '1') {
     console.log(formatTriageProgressEvent(triageResult.metrics));
   }
 
@@ -1288,7 +1288,7 @@ async function main() {
     }
   }
 
-  console.log(`\n→ Run /gig-ops pipeline to evaluate new offers.`);
+  console.log(`\n→ Run /gig-pilot pipeline to evaluate new offers.`);
   console.log('→ Share results and get help: https://discord.gg/8pRpHETxa4');
 }
 

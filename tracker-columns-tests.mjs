@@ -10,7 +10,7 @@
  * malformed rows. Both now map columns by header NAME (see #946).
  *
  * These tests provision a throwaway tracker + additions dir via the
- * GIG_OPS_TRACKER / GIG_OPS_ADDITIONS env overrides and assert:
+ * GIG_PILOT_TRACKER / GIG_PILOT_ADDITIONS env overrides and assert:
  *   1. A 10-column tracker (with Location) merges a new row into the correct
  *      columns — Score/Status are NOT shifted, Location is populated.
  *   2. verify-pipeline reports a clean bill of health on that 10-column tracker.
@@ -36,9 +36,9 @@ function fail(m) { console.error(`FAIL ${m}`); failed++; }
 function runScript(script, args, sandbox) {
   const env = {
     ...process.env,
-    GIG_OPS_TRACKER: sandbox.tracker,
-    GIG_OPS_ADDITIONS: sandbox.additions,
-    GIG_OPS_TRACKER_LOCK: sandbox.lock,
+    GIG_PILOT_TRACKER: sandbox.tracker,
+    GIG_PILOT_ADDITIONS: sandbox.additions,
+    GIG_PILOT_TRACKER_LOCK: sandbox.lock,
   };
   try {
     const stdout = execFileSync(NODE, [join(ROOT, script), ...args], {

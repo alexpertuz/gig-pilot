@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * verify-pipeline.mjs — Health check for gig-ops pipeline integrity
+ * verify-pipeline.mjs — Health check for gig-pilot pipeline integrity
  *
  * Checks:
  * 1. All statuses are canonical (per states.yml)
@@ -11,29 +11,29 @@
  * 6. No pending TSVs in tracker-additions/ (only in merged/ or archived/)
  * 7. states.yml canonical IDs for cross-system consistency
  *
- * Run: node gig-ops/verify-pipeline.mjs
+ * Run: node gig-pilot/verify-pipeline.mjs
  */
 
 import { readFileSync, readdirSync, existsSync, mkdirSync, unlinkSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-const GIG_OPS = dirname(fileURLToPath(import.meta.url));
+const GIG_PILOT = dirname(fileURLToPath(import.meta.url));
 // Support both layouts: data/leads.md (boilerplate) and applications.md (original).
-// GIG_OPS_TRACKER overrides the path (used by tests and non-standard layouts).
-const APPS_FILE = process.env.GIG_OPS_TRACKER
-  ? process.env.GIG_OPS_TRACKER
-  : existsSync(join(GIG_OPS, 'data/leads.md'))
-    ? join(GIG_OPS, 'data/leads.md')
-    : join(GIG_OPS, 'applications.md');
-const ADDITIONS_DIR = join(GIG_OPS, 'batch/tracker-additions');
-const REPORTS_DIR = join(GIG_OPS, 'reports');
-const STATES_FILE = existsSync(join(GIG_OPS, 'templates/states.yml'))
-  ? join(GIG_OPS, 'templates/states.yml')
-  : join(GIG_OPS, 'states.yml');
+// GIG_PILOT_TRACKER overrides the path (used by tests and non-standard layouts).
+const APPS_FILE = process.env.GIG_PILOT_TRACKER
+  ? process.env.GIG_PILOT_TRACKER
+  : existsSync(join(GIG_PILOT, 'data/leads.md'))
+    ? join(GIG_PILOT, 'data/leads.md')
+    : join(GIG_PILOT, 'applications.md');
+const ADDITIONS_DIR = join(GIG_PILOT, 'batch/tracker-additions');
+const REPORTS_DIR = join(GIG_PILOT, 'reports');
+const STATES_FILE = existsSync(join(GIG_PILOT, 'templates/states.yml'))
+  ? join(GIG_PILOT, 'templates/states.yml')
+  : join(GIG_PILOT, 'states.yml');
 
 // Ensure required directories exist (fresh setup)
-mkdirSync(join(GIG_OPS, 'data'), { recursive: true });
+mkdirSync(join(GIG_PILOT, 'data'), { recursive: true });
 mkdirSync(REPORTS_DIR, { recursive: true });
 
 const CANONICAL_STATUSES = [
@@ -170,7 +170,7 @@ for (const e of entries) {
   const match = e.report.match(/\]\(([^)]+)\)/);
   if (!match) continue;
   const link = match[1];
-  if (!existsSync(join(TRACKER_DIR, link)) && !existsSync(join(GIG_OPS, link))) {
+  if (!existsSync(join(TRACKER_DIR, link)) && !existsSync(join(GIG_PILOT, link))) {
     error(`#${e.num}: Report not found: ${link}`);
     brokenReports++;
   }

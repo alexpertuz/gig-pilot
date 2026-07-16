@@ -1,4 +1,4 @@
-# gig-ops — Canonical Lead Statuses
+# gig-pilot — Canonical Lead Statuses
 # Source of truth for tracker.mjs (writer) and dashboard (reader).
 # Both systems MUST use these exact states.
 #

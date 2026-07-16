@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * test-all.mjs — Comprehensive test suite for gig-ops
+ * test-all.mjs — Comprehensive test suite for gig-pilot
  *
  * Run before merging any PR or pushing changes.
  * Tests: syntax, scripts, dashboard, data contract, personal data, paths.
@@ -30,7 +30,7 @@ let warnings = 0;
  * Record and print one passing test assertion.
  *
  * The suite uses these small counters instead of a framework so it can run in
- * any freshly cloned gig-ops checkout with only Node.js available.
+ * any freshly cloned gig-pilot checkout with only Node.js available.
  *
  * @param {string} msg - Human-readable success message for the terminal log.
  * @returns {void}
@@ -85,7 +85,7 @@ function run(cmd, args = [], opts = {}) {
 /**
  * Check whether a repo-relative file exists.
  *
- * @param {string} path - Path relative to the gig-ops repository root.
+ * @param {string} path - Path relative to the gig-pilot repository root.
  * @returns {boolean} True when the file exists.
  */
 function fileExists(path) { return existsSync(join(ROOT, path)); }
@@ -108,7 +108,7 @@ function toBashPath(wpath) {
 /**
  * Read a repo-relative text file as UTF-8.
  *
- * @param {string} path - Path relative to the gig-ops repository root.
+ * @param {string} path - Path relative to the gig-pilot repository root.
  * @returns {string} File contents.
  */
 function readFile(path) {
@@ -123,7 +123,7 @@ function readFile(path) {
   return content;
 }
 
-console.log('\n🧪 gig-ops test suite\n');
+console.log('\n🧪 gig-pilot test suite\n');
 
 // ── 1. SYNTAX CHECKS ────────────────────────────────────────────
 
@@ -150,7 +150,7 @@ const scripts = [
   // data/leads.md (or data/pipeline.md) in place. On a provisioned working
   // copy with a real tracker present, running them without --dry-run mutates user
   // data. Harmless in this repo (no tracker shipped), risky for end users who run
-  // tests inside their active gig-ops workspace.
+  // tests inside their active gig-pilot workspace.
   { name: 'normalize-statuses.mjs --dry-run', expectExit: 0 },
   { name: 'dedup-tracker.mjs --dry-run', expectExit: 0 },
   { name: 'merge-tracker.mjs --dry-run', expectExit: 0 },
@@ -158,13 +158,13 @@ const scripts = [
   { name: 'analyze-patterns.mjs --self-test', expectExit: 0 },
   { name: 'updater-migration-tests.mjs', expectExit: 0 },
   { name: 'tracker-columns-tests.mjs', expectExit: 0 },
-  { name: 'agent-inbox.test.mjs', expectExit: 0 }, // self-isolates via GIG_OPS_INBOX temp file
-  { name: 'detect-reposts.test.mjs', expectExit: 0 }, // self-isolates via GIG_OPS_SCAN_HISTORY temp fixture
-  { name: 'validate-portals.mjs --file templates/portals.example.yml', expectExit: 0 },
+  { name: 'agent-inbox.test.mjs', expectExit: 0 }, // self-isolates via GIG_PILOT_INBOX temp file
+  { name: 'detect-reposts.test.mjs', expectExit: 0 }, // self-isolates via GIG_PILOT_SCAN_HISTORY temp fixture
+  { name: 'validate-sources.mjs --file templates/sources.example.yml', expectExit: 0 },
   // Missing-file run: must exit 0 gracefully and hit no network. Do not use the
   // default sources.yml because end-user workspaces often have a real user-layer
-  // portals file that would trigger a live remote sweep during tests.
-  { name: 'verify-portals.mjs --file .tmp-test-missing-sources.yml', expectExit: 0 },
+  // sources file that would trigger a live remote sweep during tests.
+  { name: 'verify-sources.mjs --file .tmp-test-missing-sources.yml', expectExit: 0 },
   { name: 'update-system.mjs check', expectExit: 0 },
 ];
 
@@ -467,9 +467,9 @@ const systemFiles = [
   'modes/_shared.md', 'modes/_profile.template.md',
   'modes/gig.md', 'modes/pdf.md', 'modes/scan.md',
   'templates/states.yml', 'templates/cv-template.html',
-  '.claude/skills/gig-ops/SKILL.md',
-  '.opencode/skills/gig-ops/SKILL.md',
-  '.antigravitycli/skills/gig-ops/SKILL.md',
+  '.claude/skills/gig-pilot/SKILL.md',
+  '.opencode/skills/gig-pilot/SKILL.md',
+  '.antigravitycli/skills/gig-pilot/SKILL.md',
 ];
 
 for (const f of systemFiles) {
@@ -649,10 +649,9 @@ if (
 console.log('\n8. Mode file integrity');
 
 const expectedModes = [
-  '_shared.md', '_profile.template.md', 'oferta.md', 'pdf.md', 'scan.md',
-  'batch.md', 'apply.md', 'auto-pipeline.md', 'contacto.md', 'deep.md',
-  'ofertas.md', 'pipeline.md', 'project.md', 'tracker.md', 'training.md',
-  'interview.md', 'latex.md',
+  '_shared.md', '_profile.template.md', 'agent-inbox.md', 'auto-pipeline.md',
+  'batch.md', 'deep.md', 'followup.md', 'gig.md', 'patterns.md', 'pdf.md',
+  'pipeline.md', 'proposal.md', 'scan.md', 'tracker.md', 'update.md',
 ];
 
 for (const mode of expectedModes) {
@@ -663,51 +662,50 @@ for (const mode of expectedModes) {
   }
 }
 
-// Check _shared.md references _profile.md
+// Check _shared.md reads the protected profile configuration directly.
 const shared = readFile('modes/_shared.md');
-if (shared.includes('_profile.md')) {
-  pass('_shared.md references _profile.md');
+if (shared.includes('config/profile.yml')) {
+  pass('_shared.md references config/profile.yml');
 } else {
-  fail('_shared.md does NOT reference _profile.md');
+  fail('_shared.md does NOT reference config/profile.yml');
 }
 
-for (const skillPath of ['.claude/skills/gig-ops/SKILL.md', '.agents/skills/gig-ops/SKILL.md']) {
+for (const skillPath of ['.agents/skills/gig-pilot/SKILL.md']) {
   if (!fileExists(skillPath)) {
     fail(`${skillPath} is missing`);
     continue;
   }
   const skill = readFile(skillPath);
-  if (skill.includes('/gig-ops latex')) {
-    pass(`${skillPath} exposes /gig-ops latex in discovery menu`);
+  if (skill.includes('/gig-pilot proposal')) {
+    pass(`${skillPath} exposes /gig-pilot proposal in discovery menu`);
   } else {
-    fail(`${skillPath} does not expose /gig-ops latex in discovery menu`);
+    fail(`${skillPath} does not expose /gig-pilot proposal in discovery menu`);
   }
 }
 
-const applyMode = readFile('modes/apply.md');
-if (
-  applyMode.includes('## Step 5 — Preflight gate') &&
-  applyMode.includes('verify liveness with Playwright') &&
-  applyMode.includes('matching report has been loaded') &&
-  applyMode.includes('Do not continue to Step 6 until this preflight is resolved') &&
-  applyMode.includes('refuse to generate final copy')
-) {
-  pass('apply mode includes liveness and role-match preflight gate');
+const activeModeNames = expectedModes
+  .filter((mode) => !mode.startsWith('_'))
+  .map((mode) => mode.replace(/\.md$/, ''));
+const skill = readFile('.agents/skills/gig-pilot/SKILL.md');
+const routedModes = [...skill.matchAll(/`([a-z-]+)` \| `\1` \|/g)].map((match) => match[1]);
+const staleRoutedModes = routedModes.filter((mode) => !activeModeNames.includes(mode));
+if (staleRoutedModes.length === 0) {
+  pass('gig-pilot skill routes only to active mode files');
 } else {
-  fail('apply mode missing liveness/role-match preflight gate');
+  fail(`gig-pilot skill routes to retired modes: ${staleRoutedModes.join(', ')}`);
 }
 
 const ofertaMode = readFile('modes/gig.md');
 const autoPipelineMode = readFile('modes/auto-pipeline.md');
 if (
-  ofertaMode.includes('## Liveness gate (URL inputs)') &&
-  ofertaMode.includes('closed posting evidence') &&
-  ofertaMode.includes('Do not continue to Block A until this gate is resolved') &&
+  ofertaMode.includes('## Step 1 — Liveness gate (URL input only)') &&
+  ofertaMode.includes('If it returns 404/410/gone') &&
+  ofertaMode.includes('If live: proceed.') &&
   autoPipelineMode.includes('## Step 0.5 — Liveness gate') &&
   autoPipelineMode.includes('closed posting evidence') &&
   autoPipelineMode.includes('Do not continue to Step 1 until this gate is resolved')
 ) {
-  pass('eval modes (oferta/auto-pipeline) gate dead links before evaluation');
+  pass('eval modes (gig/auto-pipeline) gate dead links before evaluation');
 } else {
   fail('eval modes missing liveness gate before evaluation');
 }
@@ -778,16 +776,16 @@ if (!fileExists('scripts/parsers/cohere_jobs.py')) {
   fail('Cohere parser example is still bundled as a runtime script');
 }
 
-const portalExample = readFile('templates/portals.example.yml');
+const sourcesExample = readFile('templates/sources.example.yml');
 if (
-  !portalExample.includes('cohere_jobs.py') &&
-  portalExample.includes('scripts/parsers/example-js-company-jobs.js') &&
-  portalExample.includes('scripts/parsers/example_python_company_jobs.py') &&
-  portalExample.includes('already know their target careers URL')
+  sourcesExample.includes('provider: reddit') &&
+  sourcesExample.includes('provider: hn') &&
+  sourcesExample.includes('min_hourly:') &&
+  sourcesExample.includes('DEMAND-SIDE freelance gigs')
 ) {
-  pass('portals example documents a generic local parser contract');
+  pass('sources example documents demand-side sources and budget filtering');
 } else {
-  fail('portals example still points at a bundled Cohere parser');
+  fail('sources example is missing its expected demand-side source configuration');
 }
 
 // Security hardening: command allowlist, in-repo script containment, careers_url/company validation.
@@ -866,12 +864,12 @@ try {
   fail(`scan-ats-full host-guard test crashed: ${e.message}`);
 }
 
-// ── 10. PORTALS CONFIG VALIDATOR ────────────────────────────────
+// ── 10. SOURCES CONFIG VALIDATOR ────────────────────────────────
 
-console.log('\n10. Portals config validator');
+console.log('\n10. Sources config validator');
 
 try {
-  const tmp = mkdtempSync(join(tmpdir(), 'gig-ops-portals-validator-'));
+  const tmp = mkdtempSync(join(tmpdir(), 'gig-pilot-portals-validator-'));
   const validPath = join(tmp, 'valid.yml');
   const invalidProviderPath = join(tmp, 'invalid-provider.yml');
   const emptyKeywordPath = join(tmp, 'empty-keyword.yml');
@@ -926,46 +924,46 @@ tracked_companies:
     careers_url: "https://jobs.lever.co/acme"
 `, 'utf-8');
 
-  const validResult = run(NODE, ['validate-portals.mjs', '--file', validPath]);
+  const validResult = run(NODE, ['validate-sources.mjs', '--file', validPath]);
   if (validResult !== null && validResult.includes('0 errors')) {
-    pass('validate-portals accepts a minimal valid portals file');
+    pass('validate-sources accepts a minimal valid sources file');
   } else {
-    fail('validate-portals should accept a minimal valid portals file');
+    fail('validate-sources should accept a minimal valid sources file');
   }
 
-  const exampleResult = run(NODE, ['validate-portals.mjs', '--file', 'templates/portals.example.yml']);
+  const exampleResult = run(NODE, ['validate-sources.mjs', '--file', 'templates/sources.example.yml']);
   if (exampleResult !== null && exampleResult.includes('0 errors')) {
-    pass('validate-portals accepts templates/portals.example.yml');
+    pass('validate-sources accepts templates/sources.example.yml');
   } else {
-    fail('validate-portals should accept templates/portals.example.yml');
+    fail('validate-sources should accept templates/sources.example.yml');
   }
 
-  const invalidProviderResult = run(NODE, ['validate-portals.mjs', '--file', invalidProviderPath]);
+  const invalidProviderResult = run(NODE, ['validate-sources.mjs', '--file', invalidProviderPath]);
   if (invalidProviderResult === null) {
-    pass('validate-portals rejects unknown explicit providers');
+    pass('validate-sources rejects unknown explicit providers');
   } else {
-    fail('validate-portals should reject unknown explicit providers');
+    fail('validate-sources should reject unknown explicit providers');
   }
 
-  const emptyKeywordResult = run(NODE, ['validate-portals.mjs', '--file', emptyKeywordPath]);
+  const emptyKeywordResult = run(NODE, ['validate-sources.mjs', '--file', emptyKeywordPath]);
   if (emptyKeywordResult === null) {
-    pass('validate-portals rejects empty title/location keywords');
+    pass('validate-sources rejects empty title/location keywords');
   } else {
-    fail('validate-portals should reject empty title/location keywords');
+    fail('validate-sources should reject empty title/location keywords');
   }
 
-  const duplicateCompanyResult = run(NODE, ['validate-portals.mjs', '--file', duplicateCompanyPath]);
+  const duplicateCompanyResult = run(NODE, ['validate-sources.mjs', '--file', duplicateCompanyPath]);
   if (duplicateCompanyResult !== null && duplicateCompanyResult.includes('1 warning')) {
-    pass('validate-portals warns on duplicate enabled company names');
+    pass('validate-sources warns on duplicate enabled company names');
   } else {
-    fail('validate-portals should warn on duplicate enabled company names');
+    fail('validate-sources should warn on duplicate enabled company names');
   }
 
-  const badContentFilterResult = run(NODE, ['validate-portals.mjs', '--file', badContentFilterPath]);
+  const badContentFilterResult = run(NODE, ['validate-sources.mjs', '--file', badContentFilterPath]);
   if (badContentFilterResult === null) {
-    pass('validate-portals rejects empty content_filter keywords');
+    pass('validate-sources rejects empty content_filter keywords');
   } else {
-    fail('validate-portals should reject empty content_filter keywords');
+    fail('validate-sources should reject empty content_filter keywords');
   }
 
   rmSync(tmp, { recursive: true, force: true });
@@ -973,13 +971,13 @@ tracked_companies:
   fail(`portals validator tests crashed: ${e.message}`);
 }
 
-// ── 10b. PORTAL SLUG VALIDATOR (verify-portals.mjs) ─────────────
+// ── 10b. SOURCE SLUG VALIDATOR (verify-sources.mjs) ─────────────
 
-console.log('\n10b. Portal slug validator');
+console.log('\n10b. Source slug validator');
 
 try {
   const { deriveSlugCandidates, parseAtsSlug, verifyCompanies } =
-    await import(pathToFileURL(join(ROOT, 'verify-portals.mjs')).href);
+    await import(pathToFileURL(join(ROOT, 'verify-sources.mjs')).href);
 
   const slugs = deriveSlugCandidates('Acme Corp!');
   if (JSON.stringify(slugs) === JSON.stringify(['acmecorp', 'acme-corp', 'acme_corp', 'acme'])) {
@@ -1032,9 +1030,9 @@ console.log('\n11. AGENTS.md integrity');
 
 const agents = readFile('AGENTS.md');
 const requiredSections = [
-  'Data Contract', 'Update Check', 'Ethical Use',
-  'Offer Verification', 'Canonical States', 'TSV Format',
-  'First Run', 'Onboarding',
+  'What this repo is', 'Architecture', 'Onboarding a new user', 'Modes',
+  'The pipeline flow', 'Leads tracker', 'sources.yml structure',
+  'Updating gig-pilot', 'Error handling',
 ];
 
 for (const section of requiredSections) {
@@ -1077,11 +1075,11 @@ if (!fileExists('GEMINI.md')) {
 
 console.log('\n12. Skill symlink integrity');
 
-const canonicalSkill = '.agents/skills/gig-ops/SKILL.md';
+const canonicalSkill = '.agents/skills/gig-pilot/SKILL.md';
 const symlinks = [
-  '.claude/skills/gig-ops/SKILL.md',
-  '.opencode/skills/gig-ops/SKILL.md',
-  '.antigravitycli/skills/gig-ops/SKILL.md',
+  '.claude/skills/gig-pilot/SKILL.md',
+  '.opencode/skills/gig-pilot/SKILL.md',
+  '.antigravitycli/skills/gig-pilot/SKILL.md',
 ];
 
 let canonicalReal = null;
@@ -1123,17 +1121,17 @@ for (const link of symlinks) {
 console.log('\n12a. Skill entrypoint materialization');
 
 {
-  const fixtureRoot = mkdtempSync(join(tmpdir(), 'gig-ops-skills-'));
+  const fixtureRoot = mkdtempSync(join(tmpdir(), 'gig-pilot-skills-'));
   try {
-    const canonicalDir = join(fixtureRoot, '.agents', 'skills', 'gig-ops');
-    const claudeDir = join(fixtureRoot, '.claude', 'skills', 'gig-ops');
-    const opencodeDir = join(fixtureRoot, '.opencode', 'skills', 'gig-ops');
+    const canonicalDir = join(fixtureRoot, '.agents', 'skills', 'gig-pilot');
+    const claudeDir = join(fixtureRoot, '.claude', 'skills', 'gig-pilot');
+    const opencodeDir = join(fixtureRoot, '.opencode', 'skills', 'gig-pilot');
     mkdirSync(canonicalDir, { recursive: true });
     mkdirSync(claudeDir, { recursive: true });
     mkdirSync(opencodeDir, { recursive: true });
 
-    const fixtureSkill = '---\nname: gig-ops\n---\n\n# canonical skill\n';
-    const pointer = '../../../.agents/skills/gig-ops/SKILL.md';
+    const fixtureSkill = '---\nname: gig-pilot\n---\n\n# canonical skill\n';
+    const pointer = '../../../.agents/skills/gig-pilot/SKILL.md';
     writeFileSync(join(canonicalDir, 'SKILL.md'), fixtureSkill);
     writeFileSync(join(claudeDir, 'SKILL.md'), pointer);
     writeFileSync(join(opencodeDir, 'SKILL.md'), pointer);
@@ -1141,8 +1139,8 @@ console.log('\n12a. Skill entrypoint materialization');
     const updater = await import(pathToFileURL(join(ROOT, 'update-system.mjs')).href);
     const materialized = updater.materializeSkillEntrypoints(fixtureRoot).sort();
     const expected = [
-      '.claude/skills/gig-ops/SKILL.md',
-      '.opencode/skills/gig-ops/SKILL.md',
+      '.claude/skills/gig-pilot/SKILL.md',
+      '.opencode/skills/gig-pilot/SKILL.md',
     ];
 
     if (JSON.stringify(materialized) === JSON.stringify(expected)) {
@@ -1166,14 +1164,14 @@ console.log('\n12a. Skill entrypoint materialization');
 }
 
 {
-  const fixtureRoot = mkdtempSync(join(tmpdir(), 'gig-ops-skills-unreadable-'));
+  const fixtureRoot = mkdtempSync(join(tmpdir(), 'gig-pilot-skills-unreadable-'));
   try {
-    const canonicalDir = join(fixtureRoot, '.agents', 'skills', 'gig-ops');
-    const claudeDir = join(fixtureRoot, '.claude', 'skills', 'gig-ops');
+    const canonicalDir = join(fixtureRoot, '.agents', 'skills', 'gig-pilot');
+    const claudeDir = join(fixtureRoot, '.claude', 'skills', 'gig-pilot');
     mkdirSync(canonicalDir, { recursive: true });
     mkdirSync(claudeDir, { recursive: true });
 
-    const pointer = '../../../.agents/skills/gig-ops/SKILL.md';
+    const pointer = '../../../.agents/skills/gig-pilot/SKILL.md';
     mkdirSync(join(canonicalDir, 'SKILL.md'));
     writeFileSync(join(claudeDir, 'SKILL.md'), pointer);
 
@@ -1193,17 +1191,17 @@ console.log('\n12a. Skill entrypoint materialization');
 }
 
 {
-  const fixtureRoot = mkdtempSync(join(tmpdir(), 'gig-ops-skills-entry-dir-'));
+  const fixtureRoot = mkdtempSync(join(tmpdir(), 'gig-pilot-skills-entry-dir-'));
   try {
-    const canonicalDir = join(fixtureRoot, '.agents', 'skills', 'gig-ops');
-    const claudeDir = join(fixtureRoot, '.claude', 'skills', 'gig-ops');
-    const opencodeDir = join(fixtureRoot, '.opencode', 'skills', 'gig-ops');
+    const canonicalDir = join(fixtureRoot, '.agents', 'skills', 'gig-pilot');
+    const claudeDir = join(fixtureRoot, '.claude', 'skills', 'gig-pilot');
+    const opencodeDir = join(fixtureRoot, '.opencode', 'skills', 'gig-pilot');
     mkdirSync(canonicalDir, { recursive: true });
     mkdirSync(claudeDir, { recursive: true });
     mkdirSync(opencodeDir, { recursive: true });
 
-    const fixtureSkill = '---\nname: gig-ops\n---\n\n# canonical skill\n';
-    const pointer = '../../../.agents/skills/gig-ops/SKILL.md';
+    const fixtureSkill = '---\nname: gig-pilot\n---\n\n# canonical skill\n';
+    const pointer = '../../../.agents/skills/gig-pilot/SKILL.md';
     writeFileSync(join(canonicalDir, 'SKILL.md'), fixtureSkill);
     mkdirSync(join(claudeDir, 'SKILL.md'));
     writeFileSync(join(opencodeDir, 'SKILL.md'), pointer);
@@ -1211,7 +1209,7 @@ console.log('\n12a. Skill entrypoint materialization');
     const updater = await import(pathToFileURL(join(ROOT, 'update-system.mjs')).href);
     const materialized = updater.materializeSkillEntrypoints(fixtureRoot);
     const opencodeSkill = readFileSync(join(opencodeDir, 'SKILL.md'), 'utf-8');
-    if (JSON.stringify(materialized) === JSON.stringify(['.opencode/skills/gig-ops/SKILL.md']) && opencodeSkill === fixtureSkill) {
+    if (JSON.stringify(materialized) === JSON.stringify(['.opencode/skills/gig-pilot/SKILL.md']) && opencodeSkill === fixtureSkill) {
       pass('update-system skips non-file skill entrypoints while materializing valid pointers');
     } else {
       fail(`non-file skill entrypoint handling was unexpected: ${JSON.stringify(materialized)}`);
@@ -1226,7 +1224,7 @@ console.log('\n12a. Skill entrypoint materialization');
 console.log('\n12b. Materialized skill index mode');
 
 {
-  const fixtureRoot = mkdtempSync(join(tmpdir(), 'gig-ops-skill-git-'));
+  const fixtureRoot = mkdtempSync(join(tmpdir(), 'gig-pilot-skill-git-'));
   const gitRun = (args, opts = {}) => execFileSync('git', args, {
     cwd: fixtureRoot,
     encoding: 'utf-8',
@@ -1240,15 +1238,15 @@ console.log('\n12b. Materialized skill index mode');
   });
 
   try {
-    const canonicalDir = join(fixtureRoot, '.agents', 'skills', 'gig-ops');
-    const claudeDir = join(fixtureRoot, '.claude', 'skills', 'gig-ops');
-    const opencodeDir = join(fixtureRoot, '.opencode', 'skills', 'gig-ops');
+    const canonicalDir = join(fixtureRoot, '.agents', 'skills', 'gig-pilot');
+    const claudeDir = join(fixtureRoot, '.claude', 'skills', 'gig-pilot');
+    const opencodeDir = join(fixtureRoot, '.opencode', 'skills', 'gig-pilot');
     mkdirSync(canonicalDir, { recursive: true });
     mkdirSync(claudeDir, { recursive: true });
     mkdirSync(opencodeDir, { recursive: true });
 
-    const fixtureSkill = '---\nname: gig-ops\n---\n\n# canonical skill\n';
-    const pointer = '../../../.agents/skills/gig-ops/SKILL.md';
+    const fixtureSkill = '---\nname: gig-pilot\n---\n\n# canonical skill\n';
+    const pointer = '../../../.agents/skills/gig-pilot/SKILL.md';
 
     gitRun(['init']);
     gitRun(['config', 'core.symlinks', 'false']);
@@ -1258,27 +1256,27 @@ console.log('\n12b. Materialized skill index mode');
     writeFileSync(join(canonicalDir, 'SKILL.md'), fixtureSkill);
     writeFileSync(join(claudeDir, 'SKILL.md'), pointer);
     writeFileSync(join(opencodeDir, 'SKILL.md'), pointer);
-    gitRun(['add', '--', '.agents/skills/gig-ops/SKILL.md']);
+    gitRun(['add', '--', '.agents/skills/gig-pilot/SKILL.md']);
 
     const pointerBlob = gitRun(['hash-object', '-w', '--stdin'], { input: pointer });
-    gitRun(['update-index', '--add', '--cacheinfo', `120000,${pointerBlob},.claude/skills/gig-ops/SKILL.md`]);
-    gitRun(['update-index', '--add', '--cacheinfo', `120000,${pointerBlob},.opencode/skills/gig-ops/SKILL.md`]);
+    gitRun(['update-index', '--add', '--cacheinfo', `120000,${pointerBlob},.claude/skills/gig-pilot/SKILL.md`]);
+    gitRun(['update-index', '--add', '--cacheinfo', `120000,${pointerBlob},.opencode/skills/gig-pilot/SKILL.md`]);
 
     const updater = await import(pathToFileURL(join(ROOT, 'update-system.mjs')).href);
     const materialized = updater.materializeSkillEntrypoints(fixtureRoot);
     updater.prepareMaterializedSkillEntrypointsForStage(materialized, fixtureRoot);
     gitRun(['add', '--', '.claude/skills/', '.opencode/skills/']);
 
-    const claudeIndex = gitRun(['ls-files', '-s', '--', '.claude/skills/gig-ops/SKILL.md']);
-    const opencodeIndex = gitRun(['ls-files', '-s', '--', '.opencode/skills/gig-ops/SKILL.md']);
+    const claudeIndex = gitRun(['ls-files', '-s', '--', '.claude/skills/gig-pilot/SKILL.md']);
+    const opencodeIndex = gitRun(['ls-files', '-s', '--', '.opencode/skills/gig-pilot/SKILL.md']);
     if (claudeIndex.startsWith('100644 ') && opencodeIndex.startsWith('100644 ')) {
       pass('materialized skill entrypoints stage as regular files, not symlink blobs');
     } else {
       fail(`materialized skill entrypoints staged with wrong modes: ${JSON.stringify([claudeIndex, opencodeIndex])}`);
     }
 
-    const claudeBlob = gitRaw(['show', ':.claude/skills/gig-ops/SKILL.md']);
-    const opencodeBlob = gitRaw(['show', ':.opencode/skills/gig-ops/SKILL.md']);
+    const claudeBlob = gitRaw(['show', ':.claude/skills/gig-pilot/SKILL.md']);
+    const opencodeBlob = gitRaw(['show', ':.opencode/skills/gig-pilot/SKILL.md']);
     if (claudeBlob === fixtureSkill && opencodeBlob === fixtureSkill) {
       pass('materialized skill blobs contain canonical skill content');
     } else {
@@ -1794,8 +1792,8 @@ try {
 console.log('\n12. Provider — workable');
 
 try {
-  const workable = (await import(pathToFileURL(join(ROOT, 'providers/workable.mjs')).href)).default;
-  const { parseWorkableMarkdown } = await import(pathToFileURL(join(ROOT, 'providers/workable.mjs')).href);
+  const workable = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/workable.mjs')).href)).default;
+  const { parseWorkableMarkdown } = await import(pathToFileURL(join(ROOT, 'providers/ats-archive/workable.mjs')).href);
 
   // detect() — auto-detection from careers_url
   if (workable.id === 'workable') pass('workable.id is "workable"');
@@ -1934,8 +1932,8 @@ try {
 console.log('\n13. Provider — smartrecruiters');
 
 try {
-  const sr = (await import(pathToFileURL(join(ROOT, 'providers/smartrecruiters.mjs')).href)).default;
-  const { parseSmartRecruitersResponse } = await import(pathToFileURL(join(ROOT, 'providers/smartrecruiters.mjs')).href);
+  const sr = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/smartrecruiters.mjs')).href)).default;
+  const { parseSmartRecruitersResponse } = await import(pathToFileURL(join(ROOT, 'providers/ats-archive/smartrecruiters.mjs')).href);
 
   if (sr.id === 'smartrecruiters') pass('smartrecruiters.id is "smartrecruiters"');
   else fail(`smartrecruiters.id is ${JSON.stringify(sr.id)}`);
@@ -2124,8 +2122,8 @@ try {
 console.log('\n14. Provider — recruitee');
 
 try {
-  const recruitee = (await import(pathToFileURL(join(ROOT, 'providers/recruitee.mjs')).href)).default;
-  const { parseRecruiteeResponse } = await import(pathToFileURL(join(ROOT, 'providers/recruitee.mjs')).href);
+  const recruitee = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/recruitee.mjs')).href)).default;
+  const { parseRecruiteeResponse } = await import(pathToFileURL(join(ROOT, 'providers/ats-archive/recruitee.mjs')).href);
 
   if (recruitee.id === 'recruitee') pass('recruitee.id is "recruitee"');
   else fail(`recruitee.id is ${JSON.stringify(recruitee.id)}`);
@@ -2271,7 +2269,7 @@ try {
   }
 
   // End-to-end migration against a fictional fixture tracker (no personal data)
-  const tmpDir = mkdtempSync(join(tmpdir(), 'gig-ops-migrate-'));
+  const tmpDir = mkdtempSync(join(tmpdir(), 'gig-pilot-migrate-'));
   try {
     mkdirSync(join(tmpDir, 'data'));
     mkdirSync(join(tmpDir, 'reports'));
@@ -2284,7 +2282,7 @@ try {
       '| 12 | 2026-01-04 | Acme | Engineer | 4.2/5 | Evaluated | ✅ | [12](reports/012-acme-2026-01-04.md) | ok |\n');
 
     // Migrate by pointing the script at the fixture tracker via env override.
-    run(NODE, ['merge-tracker.mjs', '--migrate'], { env: { ...process.env, GIG_OPS_TRACKER: tracker } });
+    run(NODE, ['merge-tracker.mjs', '--migrate'], { env: { ...process.env, GIG_PILOT_TRACKER: tracker } });
     const after = readFileSync(tracker, 'utf-8');
     if (after.includes('[12](../reports/012-acme-2026-01-04.md)')) {
       pass('migration rewrites fixture tracker links to ../reports/...');
@@ -2296,7 +2294,7 @@ try {
   }
 
   const { resolveReportPath } = await import(pathToFileURL(join(ROOT, 'followup-cadence.mjs')).href);
-  const followupTmp = mkdtempSync(join(tmpdir(), 'gig-ops-followup-link-'));
+  const followupTmp = mkdtempSync(join(tmpdir(), 'gig-pilot-followup-link-'));
   try {
     mkdirSync(join(followupTmp, 'data'), { recursive: true });
     mkdirSync(join(followupTmp, 'reports'), { recursive: true });
@@ -2351,7 +2349,7 @@ try {
     fail('role matcher ignored a real short-acronym overlap');
   }
 
-  const dedupTmp = mkdtempSync(join(tmpdir(), 'gig-ops-dedup-'));
+  const dedupTmp = mkdtempSync(join(tmpdir(), 'gig-pilot-dedup-'));
   try {
     mkdirSync(join(dedupTmp, 'data'));
     const tracker = join(dedupTmp, 'data', 'applications.md');
@@ -2370,7 +2368,7 @@ try {
       '| 29 | 2026-01-08 | Acme | Data Engineer, Search | 3.1/5 | Applied | ❌ | [29](../reports/029-search-old.md) | malformed duplicate-number old row |\n' +
       '| 29 | 2026-01-09 | Acme | Data Engineer, Search | 4.1/5 | Evaluated | ❌ | [30](../reports/030-search-new.md) | malformed duplicate-number new row |\n');
 
-    const dedupResult = run(NODE, ['dedup-tracker.mjs'], { env: { ...process.env, GIG_OPS_TRACKER: tracker } });
+    const dedupResult = run(NODE, ['dedup-tracker.mjs'], { env: { ...process.env, GIG_PILOT_TRACKER: tracker } });
     if (dedupResult === null) {
       fail('dedup-tracker.mjs crashed during shared role matcher safety test');
     } else {
@@ -2423,7 +2421,7 @@ try {
 // when promoting a keeper's status during dedup. rebuildRow() now preserves it.
 console.log('\n🧪 Testing dedup row rebuild preserves notes on no-trailing-pipe rows...');
 try {
-  const rebuildTmp = mkdtempSync(join(tmpdir(), 'gig-ops-rebuild-'));
+  const rebuildTmp = mkdtempSync(join(tmpdir(), 'gig-pilot-rebuild-'));
   try {
     mkdirSync(join(rebuildTmp, 'data'));
     const tracker = join(rebuildTmp, 'data', 'applications.md');
@@ -2438,7 +2436,7 @@ try {
       '| 50 | 2026-02-01 | Globex | Widget Engineer | 4.5/5 | Rejected | ❌ | [50](../reports/050-widget.md) | KEEPER_NOTE_SENTINEL\n' +
       '| 51 | 2026-02-02 | Globex | Widget Engineer | 3.0/5 | Evaluated | ❌ | [51](../reports/051-widget.md) | dup row |\n');
 
-    const r = run(NODE, ['dedup-tracker.mjs'], { env: { ...process.env, GIG_OPS_TRACKER: tracker } });
+    const r = run(NODE, ['dedup-tracker.mjs'], { env: { ...process.env, GIG_PILOT_TRACKER: tracker } });
     if (r === null) {
       fail('dedup-tracker.mjs crashed during notes-preservation test');
     } else {
@@ -2468,7 +2466,7 @@ try {
 // distinct specialties fall below the 0.6 threshold.
 console.log('\n🧪 Testing merge-tracker fuzzy dedup (distinct roles vs reposts)...');
 try {
-  const mergeTmp = mkdtempSync(join(tmpdir(), 'gig-ops-merge-'));
+  const mergeTmp = mkdtempSync(join(tmpdir(), 'gig-pilot-merge-'));
   try {
     mkdirSync(join(mergeTmp, 'data'));
     mkdirSync(join(mergeTmp, 'reports'));
@@ -2492,7 +2490,7 @@ try {
     writeFileSync(join(additionsDir, '005-streamco.tsv'),
       '5\t2026-01-06\tStreamCo\tFull Stack Engineer 5, Ads Reporting\tEvaluated\t4.5/5\t❌\t[5](reports/005-streamco-2026-01-06.md)\trepost\n');
 
-    const mergeResult = run(NODE, ['merge-tracker.mjs'], { env: { ...process.env, GIG_OPS_TRACKER: tracker, GIG_OPS_ADDITIONS: additionsDir } });
+    const mergeResult = run(NODE, ['merge-tracker.mjs'], { env: { ...process.env, GIG_PILOT_TRACKER: tracker, GIG_PILOT_ADDITIONS: additionsDir } });
     if (mergeResult === null) {
       fail('merge-tracker.mjs crashed during fuzzy dedup regression test');
     } else {
@@ -2533,7 +2531,7 @@ try {
 // update it in-place instead of appending NewCo as a new row.
 console.log('\n🧪 Testing merge-tracker report-number cross-company collision (#912)...');
 try {
-  const col912Tmp = mkdtempSync(join(tmpdir(), 'gig-ops-merge-912-'));
+  const col912Tmp = mkdtempSync(join(tmpdir(), 'gig-pilot-merge-912-'));
   try {
     mkdirSync(join(col912Tmp, 'data'));
     mkdirSync(join(col912Tmp, 'reports'));
@@ -2554,7 +2552,7 @@ try {
       '1\t2026-01-05\tNewCo\tNew Role\tEvaluated\t2.7/5\t❌\t[1](reports/001-newco-2026-01-05.md)\tcollision\n');
 
     const col912Result = run(NODE, ['merge-tracker.mjs'], {
-      env: { ...process.env, GIG_OPS_TRACKER: col912Tracker, GIG_OPS_ADDITIONS: col912Additions },
+      env: { ...process.env, GIG_PILOT_TRACKER: col912Tracker, GIG_PILOT_ADDITIONS: col912Additions },
     });
     if (col912Result === null) {
       fail('merge-tracker crashed during report-number collision test (#912)');
@@ -2598,7 +2596,7 @@ try {
 // tracker, making the old race deterministic.
 console.log('\n🧪 Testing merge-tracker concurrent writes...');
 try {
-  const mergeTmp = mkdtempSync(join(tmpdir(), 'gig-ops-merge-lock-'));
+  const mergeTmp = mkdtempSync(join(tmpdir(), 'gig-pilot-merge-lock-'));
   /**
    * Spawn one isolated `merge-tracker.mjs` process against the temporary fixture.
    *
@@ -2623,11 +2621,11 @@ try {
         cwd: ROOT,
         env: {
           ...process.env,
-          GIG_OPS_TRACKER: join(mergeTmp, 'data', 'applications.md'),
-          GIG_OPS_ADDITIONS: additionsDir,
-          GIG_OPS_TRACKER_LOCK: join(mergeTmp, 'gig-ops-merge-tracker-fixture.lock'),
-          GIG_OPS_MERGE_HOLD_MS: String(holdMs),
-          GIG_OPS_MERGE_READY_IPC: '1',
+          GIG_PILOT_TRACKER: join(mergeTmp, 'data', 'applications.md'),
+          GIG_PILOT_ADDITIONS: additionsDir,
+          GIG_PILOT_TRACKER_LOCK: join(mergeTmp, 'gig-pilot-merge-tracker-fixture.lock'),
+          GIG_PILOT_MERGE_HOLD_MS: String(holdMs),
+          GIG_PILOT_MERGE_READY_IPC: '1',
         },
         stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       });
@@ -2721,26 +2719,26 @@ try {
 console.log('\n12. Cold-start trigger (deterministic onboarding state)');
 
 try {
-  // Virgin env: none of the 4 user-layer prerequisites present → must onboard.
+  // Virgin env: none of the 3 user-layer prerequisites present → must onboard.
   const virgin = mkdtempSync(join(tmpdir(), 'co-cold-'));
   const v = JSON.parse(run(NODE, ['doctor.mjs', '--json', '--target', virgin]) || '{}');
   if (
     v.onboardingNeeded === true &&
     Array.isArray(v.missing) &&
-    v.missing.length === 4 &&
+    v.missing.length === 3 &&
     Array.isArray(v.warnings)
   ) {
-    pass('Virgin env → onboarding triggered (4 prerequisites missing)');
+    pass('Virgin env → onboarding triggered (3 prerequisites missing)');
   } else {
     fail(`Virgin env not flagged for onboarding: ${JSON.stringify(v)}`);
   }
   rmSync(virgin, { recursive: true, force: true });
 
-  // Fully provisioned env: all 4 present → must NOT onboard.
+  // Fully provisioned env: all required files present → must NOT onboard.
   const ready = mkdtempSync(join(tmpdir(), 'co-ready-'));
   mkdirSync(join(ready, 'config'), { recursive: true });
   mkdirSync(join(ready, 'modes'), { recursive: true });
-  for (const f of ['cv.md', 'config/profile.yml', 'modes/_profile.md', 'sources.yml']) {
+  for (const f of ['config/profile.yml', 'modes/_profile.md', 'sources.yml']) {
     writeFileSync(join(ready, f), 'x');
   }
   const r = JSON.parse(run(NODE, ['doctor.mjs', '--json', '--target', ready]) || '{}');
@@ -2753,13 +2751,12 @@ try {
 
   const claudeDoc = readFile('CLAUDE.md');
   if (
-    /node\s+doctor\.mjs\s+--json/.test(claudeDoc) &&
-    /"warnings"\s*:\s*\[\.\.\.\]/.test(claudeDoc) &&
+    /^@AGENTS\.md/m.test(claudeDoc) &&
     !/Does\s+`cv\.md`\s+exist\?/i.test(claudeDoc)
   ) {
-    pass('CLAUDE.md delegates onboarding state to doctor --json');
+    pass('CLAUDE.md delegates shared onboarding guidance to AGENTS.md');
   } else {
-    fail('CLAUDE.md still duplicates onboarding prerequisite checks');
+    fail('CLAUDE.md does not delegate shared onboarding guidance to AGENTS.md');
   }
 } catch (e) {
   fail(`Cold-start trigger test crashed: ${e.message}`);
@@ -2779,10 +2776,10 @@ if (!sqliteAvailable) {
   warn('node:sqlite unavailable (Node < 22.5) — tracker index tests skipped');
 } else {
   try {
-    const idxTmp = mkdtempSync(join(tmpdir(), 'gig-ops-index-'));
+    const idxTmp = mkdtempSync(join(tmpdir(), 'gig-pilot-index-'));
     try {
       const md = join(idxTmp, 'applications.md');
-      const env = { ...process.env, GIG_OPS_TRACKER: md };
+      const env = { ...process.env, GIG_PILOT_TRACKER: md };
       const trackerRun = (args) => run(NODE, ['tracker.mjs', ...args], { env, stdio: ['pipe', 'pipe', 'pipe'] });
 
       // 1. Round trip: clean canonical input must export byte-identical.
@@ -2790,8 +2787,8 @@ if (!sqliteAvailable) {
         '# Applications Tracker\n\n' +
         '| # | Date | Company | Role | Score | Status | PDF | Report | Notes |\n' +
         '|---|------|---------|------|-------|--------|-----|--------|-------|\n' +
-        '| 2 | 2026-01-05 | Beta | Designer | 4.0/5 | Applied | ✅ | [2](../reports/002-beta-2026-01-05.md) | second |\n' +
-        '| 1 | 2026-01-04 | Acme | Engineer | 4.2/5 | Evaluated | ❌ | [1](../reports/001-acme-2026-01-04.md) | first |\n';
+        '| 2 | 2026-01-05 | Beta | Designer | 4.0/5 | contacted | ✅ | [2](../reports/002-beta-2026-01-05.md) | second |\n' +
+        '| 1 | 2026-01-04 | Acme | Engineer | 4.2/5 | new | ❌ | [1](../reports/001-acme-2026-01-04.md) | first |\n';
       writeFileSync(md, clean);
       if (trackerRun(['sync']) === null) {
         fail('tracker sync crashed on clean fixture');
@@ -2819,7 +2816,7 @@ if (!sqliteAvailable) {
         fail('sync --check did not flag corrupted fixture');
       }
       const queried = JSON.parse(trackerRun(['query', '--company', 'Gamma', '--json']) || '[]');
-      if (queried.length === 1 && queried[0].status === 'Evaluated' && queried[0].score === '3.5/5' && queried[0].id === 3) {
+      if (queried.length === 1 && queried[0].status === 'new' && queried[0].score === '3.5/5' && queried[0].id === 3) {
         pass('corrupted row is normalized in the index (status/score/id repaired)');
       } else {
         fail(`corrupted row not normalized in index: ${JSON.stringify(queried)}`);
@@ -2841,10 +2838,10 @@ if (!sqliteAvailable) {
       }
 
       // 4. Status transitions across syncs accumulate in status_events.
-      writeFileSync(md, readFileSync(md, 'utf-8').replace('| 4.0/5 | Applied |', '| 4.0/5 | Interview |'));
+      writeFileSync(md, readFileSync(md, 'utf-8').replace('| 4.0/5 | contacted |', '| 4.0/5 | replied |'));
       const log = trackerRun(['history', '--id', '2']);
-      if (log && log.includes('Applied') && log.includes('Interview')) {
-        pass('history records the Applied → Interview transition across syncs');
+      if (log && log.includes('contacted') && log.includes('replied')) {
+        pass('history records the contacted → replied transition across syncs');
       } else {
         fail(`history missing status transition: ${log}`);
       }
@@ -2895,13 +2892,13 @@ try {
 console.log('\n15. Provider — solidjobs');
 
 try {
-  const sj = (await import(pathToFileURL(join(ROOT, 'providers/solidjobs.mjs')).href)).default;
+  const sj = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/solidjobs.mjs')).href)).default;
 
   if (sj.id === 'solidjobs') pass('solidjobs.id is "solidjobs"');
   else fail(`solidjobs.id is ${JSON.stringify(sj.id)}`);
 
   // detect() matches valid SolidJobs API URL
-  const hit = sj.detect({ name: 'SJ', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-ops' });
+  const hit = sj.detect({ name: 'SJ', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-pilot' });
   if (hit && hit.url) pass('solidjobs.detect() matches valid API URL');
   else fail('solidjobs.detect() should match solid.jobs public-api URL');
 
@@ -2936,12 +2933,12 @@ try {
   // fetch() parses { jobs: [...] } response with company from API
   const fakeJobs = {
     jobs: [
-      { title: 'Senior Dev', url: 'https://solid.jobs/o/abc123/gig-ops', company: 'Acme Corp', locations: ['Warszawa', 'Remote'] },
-      { title: 'Junior Dev', url: 'https://solid.jobs/o/def456/gig-ops', company: 'Beta Inc', locations: ['Kraków'] },
+      { title: 'Senior Dev', url: 'https://solid.jobs/o/abc123/gig-pilot', company: 'Acme Corp', locations: ['Warszawa', 'Remote'] },
+      { title: 'Junior Dev', url: 'https://solid.jobs/o/def456/gig-pilot', company: 'Beta Inc', locations: ['Kraków'] },
     ],
   };
   const parsed = await sj.fetch(
-    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-ops' },
+    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-pilot' },
     { transport: 'http', fetchJson: async () => fakeJobs, fetchText: async () => '' },
   );
   if (parsed.length === 2) pass('solidjobs.fetch() returns 2 jobs from mock response');
@@ -2953,16 +2950,16 @@ try {
   if (parsed[0].location === 'Warszawa, Remote') pass('solidjobs.fetch() joins locations array');
   else fail(`solidjobs.fetch() location is ${JSON.stringify(parsed[0].location)}, expected "Warszawa, Remote"`);
 
-  if (parsed[0].title === 'Senior Dev' && parsed[0].url === 'https://solid.jobs/o/abc123/gig-ops') {
+  if (parsed[0].title === 'Senior Dev' && parsed[0].url === 'https://solid.jobs/o/abc123/gig-pilot') {
     pass('solidjobs.fetch() maps title and url correctly');
   } else {
     fail(`solidjobs.fetch() title/url wrong: ${JSON.stringify(parsed[0])}`);
   }
 
   // fetch() falls back to entry.name when j.company is missing
-  const noCompanyJobs = { jobs: [{ title: 'Tester', url: 'https://solid.jobs/o/xyz/gig-ops', locations: [] }] };
+  const noCompanyJobs = { jobs: [{ title: 'Tester', url: 'https://solid.jobs/o/xyz/gig-pilot', locations: [] }] };
   const fallback = await sj.fetch(
-    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-ops' },
+    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-pilot' },
     { transport: 'http', fetchJson: async () => noCompanyJobs, fetchText: async () => '' },
   );
   if (fallback[0].company === 'SolidJobs IT') pass('solidjobs.fetch() falls back to entry.name when j.company missing');
@@ -3040,7 +3037,7 @@ try {
     let threw = false;
     try {
       await sj.fetch(
-        { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-ops' },
+        { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-pilot' },
         { transport: 'http', fetchJson: async () => resp, fetchText: async () => '' },
       );
     } catch (e) {
@@ -3054,22 +3051,22 @@ try {
   // fetch() filters out jobs with empty/missing url
   const mixedJobs = {
     jobs: [
-      { title: 'Has URL', url: 'https://solid.jobs/o/1/gig-ops', company: 'A', locations: [] },
+      { title: 'Has URL', url: 'https://solid.jobs/o/1/gig-pilot', company: 'A', locations: [] },
       { title: 'No URL', url: '', company: 'B', locations: [] },
       { title: 'Missing URL', company: 'C', locations: [] },
     ],
   };
   const filtered = await sj.fetch(
-    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-ops' },
+    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-pilot' },
     { transport: 'http', fetchJson: async () => mixedJobs, fetchText: async () => '' },
   );
   if (filtered.length === 1 && filtered[0].title === 'Has URL') pass('solidjobs.fetch() filters out jobs with empty/missing url');
   else fail(`solidjobs.fetch() should filter empty URLs, got ${filtered.length} jobs: ${JSON.stringify(filtered)}`);
 
   // fetch() handles string locations (non-array)
-  const stringLocJobs = { jobs: [{ title: 'Dev', url: 'https://solid.jobs/o/2/gig-ops', company: 'X', locations: 'Warsaw' }] };
+  const stringLocJobs = { jobs: [{ title: 'Dev', url: 'https://solid.jobs/o/2/gig-pilot', company: 'X', locations: 'Warsaw' }] };
   const strLoc = await sj.fetch(
-    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-ops' },
+    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-pilot' },
     { transport: 'http', fetchJson: async () => stringLocJobs, fetchText: async () => '' },
   );
   if (strLoc[0].location === 'Warsaw') pass('solidjobs.fetch() handles string locations');
@@ -3085,19 +3082,19 @@ try {
   // fetch() passes redirect:'error' to fetchJson
   let capturedOpts = null;
   await sj.fetch(
-    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-ops' },
+    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-pilot' },
     { transport: 'http', fetchJson: async (_url, opts) => { capturedOpts = opts; return { jobs: [] }; }, fetchText: async () => '' },
   );
   if (capturedOpts && capturedOpts.redirect === 'error') pass('solidjobs.fetch() passes redirect:"error" to fetchJson');
   else fail(`solidjobs.fetch() should pass redirect:"error", got: ${JSON.stringify(capturedOpts)}`);
 
   // fetch() tolerates malformed array members without crashing
-  const malformedMembers = { jobs: [null, 7, { title: 'OK', url: 'https://solid.jobs/o/3/gig-ops', company: 'Z' }] };
+  const malformedMembers = { jobs: [null, 7, { title: 'OK', url: 'https://solid.jobs/o/3/gig-pilot', company: 'Z' }] };
   const safeParsed = await sj.fetch(
-    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-ops' },
+    { name: 'SolidJobs IT', careers_url: 'https://solid.jobs/public-api/offers/it?campaign=gig-pilot' },
     { transport: 'http', fetchJson: async () => malformedMembers, fetchText: async () => '' },
   );
-  if (safeParsed.length === 1 && safeParsed[0].url === 'https://solid.jobs/o/3/gig-ops') {
+  if (safeParsed.length === 1 && safeParsed[0].url === 'https://solid.jobs/o/3/gig-pilot') {
     pass('solidjobs.fetch() skips malformed jobs members without crashing');
   } else {
     fail(`solidjobs.fetch() malformed members handling failed: ${JSON.stringify(safeParsed)}`);
@@ -3114,9 +3111,9 @@ try {
 console.log('\n16. Provider — SSRF redirect hardening (lever / ashby / workday)');
 
 try {
-  const lever = (await import(pathToFileURL(join(ROOT, 'providers/lever.mjs')).href)).default;
-  const ashby = (await import(pathToFileURL(join(ROOT, 'providers/ashby.mjs')).href)).default;
-  const workday = (await import(pathToFileURL(join(ROOT, 'providers/workday.mjs')).href)).default;
+  const lever = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/lever.mjs')).href)).default;
+  const ashby = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/ashby.mjs')).href)).default;
+  const workday = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/workday.mjs')).href)).default;
 
   let leverOpts = null;
   await lever.fetch(
@@ -3348,12 +3345,12 @@ try {
   const { SEMVER_RE } = await import(pathToFileURL(join(ROOT, 'update-system.mjs')).href);
   const parse = (tag) => String(tag).trim().match(SEMVER_RE)?.[1] ?? null;
 
-  // Release Please tags carry the component prefix (gig-ops-v1.9.0); the
+  // Release Please tags carry the component prefix (gig-pilot-v1.9.0); the
   // prefix must be stripped or the releases-API fallback is dead code (#923).
-  if (parse('gig-ops-v1.9.0') === '1.9.0') {
-    pass('SEMVER_RE parses Release Please component-prefixed tag (gig-ops-v1.9.0 → 1.9.0)');
+  if (parse('gig-pilot-v1.9.0') === '1.9.0') {
+    pass('SEMVER_RE parses Release Please component-prefixed tag (gig-pilot-v1.9.0 → 1.9.0)');
   } else {
-    fail(`SEMVER_RE failed on gig-ops-v1.9.0 (got ${parse('gig-ops-v1.9.0')}) — releases-API fallback is dead code (#923)`);
+    fail(`SEMVER_RE failed on gig-pilot-v1.9.0 (got ${parse('gig-pilot-v1.9.0')}) — releases-API fallback is dead code (#923)`);
   }
 
   // No regression on plain tags.
@@ -3364,10 +3361,10 @@ try {
   }
 
   // Non-semver input must not match.
-  if (parse('gig-ops') === null && parse('v1.9') === null) {
+  if (parse('gig-pilot') === null && parse('v1.9') === null) {
     pass('SEMVER_RE rejects non-semver input');
   } else {
-    fail(`SEMVER_RE matched non-semver input (gig-ops → ${parse('gig-ops')}, v1.9 → ${parse('v1.9')})`);
+    fail(`SEMVER_RE matched non-semver input (gig-pilot → ${parse('gig-pilot')}, v1.9 → ${parse('v1.9')})`);
   }
 } catch (e) {
   fail(`update-system SEMVER_RE test crashed: ${e.message}`);
@@ -3614,8 +3611,8 @@ try {
 console.log('\n22. Provider — jobstreet');
 
 try {
-  const jobstreet = (await import(pathToFileURL(join(ROOT, 'providers/jobstreet.mjs')).href)).default;
-  const { parseJobstreetItem } = await import(pathToFileURL(join(ROOT, 'providers/jobstreet.mjs')).href);
+  const jobstreet = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/jobstreet.mjs')).href)).default;
+  const { parseJobstreetItem } = await import(pathToFileURL(join(ROOT, 'providers/ats-archive/jobstreet.mjs')).href);
 
   // id check
   if (jobstreet.id === 'jobstreet') pass('jobstreet.id is "jobstreet"');
@@ -3765,8 +3762,8 @@ try {
 console.log('\n23. Provider — glints');
 
 try {
-  const glints = (await import(pathToFileURL(join(ROOT, 'providers/glints.mjs')).href)).default;
-  const { parseGlintsItem } = await import(pathToFileURL(join(ROOT, 'providers/glints.mjs')).href);
+  const glints = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/glints.mjs')).href)).default;
+  const { parseGlintsItem } = await import(pathToFileURL(join(ROOT, 'providers/ats-archive/glints.mjs')).href);
 
   // id check
   if (glints.id === 'glints') pass('glints.id is "glints"');
@@ -3956,9 +3953,9 @@ try {
 console.log('\n25. Provider — arbeitsagentur');
 
 try {
-  const aa = (await import(pathToFileURL(join(ROOT, 'providers/arbeitsagentur.mjs')).href)).default;
+  const aa = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/arbeitsagentur.mjs')).href)).default;
   const { parseArbeitsagenturConfig, buildLocation, normalizeJob } =
-    await import(pathToFileURL(join(ROOT, 'providers/arbeitsagentur.mjs')).href);
+    await import(pathToFileURL(join(ROOT, 'providers/ats-archive/arbeitsagentur.mjs')).href);
 
   if (aa.id === 'arbeitsagentur') pass('arbeitsagentur.id is "arbeitsagentur"');
   else fail(`arbeitsagentur.id is ${JSON.stringify(aa.id)}`);
@@ -4119,8 +4116,8 @@ try {
 console.log('\n24. Provider — ibm');
 
 try {
-  const ibm = (await import(pathToFileURL(join(ROOT, 'providers/ibm.mjs')).href)).default;
-  const { parseIbmResponse, buildPostFilter } = await import(pathToFileURL(join(ROOT, 'providers/ibm.mjs')).href);
+  const ibm = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/ibm.mjs')).href)).default;
+  const { parseIbmResponse, buildPostFilter } = await import(pathToFileURL(join(ROOT, 'providers/ats-archive/ibm.mjs')).href);
 
   if (ibm.id === 'ibm') pass('ibm.id is "ibm"');
   else fail(`ibm.id is ${JSON.stringify(ibm.id)}`);
@@ -4212,8 +4209,8 @@ try {
 
 console.log('\n26. Provider — bamboohr');
 try {
-  const bamboohr = (await import(pathToFileURL(join(ROOT, 'providers/bamboohr.mjs')).href)).default;
-  const { parseBambooHRResponse } = await import(pathToFileURL(join(ROOT, 'providers/bamboohr.mjs')).href);
+  const bamboohr = (await import(pathToFileURL(join(ROOT, 'providers/ats-archive/bamboohr.mjs')).href)).default;
+  const { parseBambooHRResponse } = await import(pathToFileURL(join(ROOT, 'providers/ats-archive/bamboohr.mjs')).href);
 
   if (bamboohr.id === 'bamboohr') pass('bamboohr.id is "bamboohr"');
   else fail(`bamboohr.id is ${JSON.stringify(bamboohr.id)}`);

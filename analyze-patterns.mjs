@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * analyze-patterns.mjs — Rejection Pattern Detector for gig-ops
+ * analyze-patterns.mjs — Rejection Pattern Detector for gig-pilot
  *
  * Parses applications.md + all linked reports, extracts dimensions
  * (archetype, seniority, remote, gaps, scores), classifies outcomes,
@@ -17,11 +17,11 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { load as yamlLoad } from 'js-yaml';
 
-const GIG_OPS = dirname(fileURLToPath(import.meta.url));
-const APPS_FILE = existsSync(join(GIG_OPS, 'data/leads.md'))
-  ? join(GIG_OPS, 'data/leads.md')
-  : join(GIG_OPS, 'applications.md');
-const REPORTS_DIR = join(GIG_OPS, 'reports');
+const GIG_PILOT = dirname(fileURLToPath(import.meta.url));
+const APPS_FILE = existsSync(join(GIG_PILOT, 'data/leads.md'))
+  ? join(GIG_PILOT, 'data/leads.md')
+  : join(GIG_PILOT, 'applications.md');
+const REPORTS_DIR = join(GIG_PILOT, 'reports');
 
 const MACHINE_SUMMARY_FIELDS = new Set([
   'company',
@@ -356,7 +356,7 @@ function analyze() {
   // Enrich entries with report data and classification
   const enriched = entries.map(e => {
     const reportMatch = e.report.match(/\]\(([^)]+)\)/);
-    const reportPath = reportMatch ? join(GIG_OPS, reportMatch[1]) : null;
+    const reportPath = reportMatch ? join(GIG_PILOT, reportMatch[1]) : null;
     const reportData = reportPath ? parseReport(reportPath) : null;
     const outcome = classifyOutcome(e.status);
     const trackerScore = parseFloat(e.score);

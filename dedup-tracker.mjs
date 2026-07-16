@@ -6,7 +6,7 @@
  * Keeps entry with highest score. If discarded entry had more advanced status,
  * preserves that status. Merges notes.
  *
- * Run: node gig-ops/dedup-tracker.mjs [--dry-run]
+ * Run: node gig-pilot/dedup-tracker.mjs [--dry-run]
  */
 
 import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'fs';
@@ -14,15 +14,15 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { roleFuzzyMatch } from './role-matcher.mjs';
 
-const GIG_OPS = dirname(fileURLToPath(import.meta.url));
+const GIG_PILOT = dirname(fileURLToPath(import.meta.url));
 // Support both layouts: data/leads.md (boilerplate) and applications.md
-// (original). GIG_OPS_TRACKER lets tests point the script at an isolated
+// (original). GIG_PILOT_TRACKER lets tests point the script at an isolated
 // fixture so the real user tracker is never touched.
-const APPS_FILE = process.env.GIG_OPS_TRACKER
-  ? process.env.GIG_OPS_TRACKER
-  : existsSync(join(GIG_OPS, 'data/leads.md'))
-    ? join(GIG_OPS, 'data/leads.md')
-    : join(GIG_OPS, 'applications.md');
+const APPS_FILE = process.env.GIG_PILOT_TRACKER
+  ? process.env.GIG_PILOT_TRACKER
+  : existsSync(join(GIG_PILOT, 'data/leads.md'))
+    ? join(GIG_PILOT, 'data/leads.md')
+    : join(GIG_PILOT, 'applications.md');
 const DRY_RUN = process.argv.includes('--dry-run');
 
 // Ensure the target tracker directory exists in both normal and fixture mode.

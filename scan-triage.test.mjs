@@ -11,7 +11,7 @@ import {
 } from './scan.mjs';
 
 test('parseTriageOptions uses enforced mode and the configured active provider by default', () => {
-  assert.deepEqual(parseTriageOptions([], { GIGOPS_AGENT_PROVIDER: 'codex' }), {
+  assert.deepEqual(parseTriageOptions([], { GIGPILOT_AGENT_PROVIDER: 'codex' }), {
     mode: 'enforced',
     provider: 'codex',
     reclassify: false,
@@ -85,8 +85,8 @@ test('formatTriageProgressEvent emits complete machine-readable quality metrics'
     },
   });
 
-  assert.match(line, /^::gig-ops-scan::/);
-  assert.deepEqual(JSON.parse(line.replace(/^::gig-ops-scan::/, '')), {
+  assert.match(line, /^::gig-pilot-scan::/);
+  assert.deepEqual(JSON.parse(line.replace(/^::gig-pilot-scan::/, '')), {
     type: 'triage', fetched: 40, ruleRejected: 25, modelEvaluated: 10,
     cached: 2, accepted: 4, quarantined: 11,
     bySource: {

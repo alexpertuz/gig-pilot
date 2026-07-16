@@ -12,8 +12,8 @@ test('runNode captures stdout and streams lines', async () => {
 });
 
 test('runNode can pass scoped environment values to the child process', async () => {
-  const res = await runNode('-e', ["console.log(process.env.GIG_OPS_SCAN_EVENTS || 'missing')"], {
-    env: { GIG_OPS_SCAN_EVENTS: '1' },
+  const res = await runNode('-e', ["console.log(process.env.GIG_PILOT_SCAN_EVENTS || 'missing')"], {
+    env: { GIG_PILOT_SCAN_EVENTS: '1' },
   });
 
   assert.equal(res.stdout.trim(), '1');

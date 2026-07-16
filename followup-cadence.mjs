@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * followup-cadence.mjs — Follow-up Cadence Tracker for gig-ops
+ * followup-cadence.mjs — Follow-up Cadence Tracker for gig-pilot
  *
  * Parses applications.md + follow-ups.md, calculates follow-up cadence
  * for active applications, extracts contacts, and flags overdue entries.
@@ -16,12 +16,12 @@ import { join, dirname, relative, sep } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import yaml from 'js-yaml';
 
-const GIG_OPS = dirname(fileURLToPath(import.meta.url));
-const APPS_FILE = existsSync(join(GIG_OPS, 'data/leads.md'))
-  ? join(GIG_OPS, 'data/leads.md')
-  : join(GIG_OPS, 'applications.md');
-const FOLLOWUPS_FILE = join(GIG_OPS, 'data/follow-ups.md');
-const PROFILE_FILE = process.env.GIG_OPS_PROFILE || join(GIG_OPS, 'config/profile.yml');
+const GIG_PILOT = dirname(fileURLToPath(import.meta.url));
+const APPS_FILE = existsSync(join(GIG_PILOT, 'data/leads.md'))
+  ? join(GIG_PILOT, 'data/leads.md')
+  : join(GIG_PILOT, 'applications.md');
+const FOLLOWUPS_FILE = join(GIG_PILOT, 'data/follow-ups.md');
+const PROFILE_FILE = process.env.GIG_PILOT_PROFILE || join(GIG_PILOT, 'config/profile.yml');
 
 
 // --- CLI args ---
@@ -198,7 +198,7 @@ function extractContacts(notes) {
 }
 
 // --- Resolve report path ---
-export function resolveReportPath(reportField, appsFile = APPS_FILE, repoRoot = GIG_OPS) {
+export function resolveReportPath(reportField, appsFile = APPS_FILE, repoRoot = GIG_PILOT) {
   const match = reportField.match(/\]\(([^)]+)\)/);
   if (!match) return null;
   // Report links in the tracker are normalized relative to the tracker file's

@@ -28,7 +28,7 @@ function buildCodexPrompt(mode, args = {}) {
   const spec = MODES[mode];
   const input = spec.input?.(args);
   const lines = [
-    `Run the gig-ops mode defined in ${spec.file}.`,
+    `Run the gig-pilot mode defined in ${spec.file}.`,
     'Read that file and follow its instructions for this task.',
   ];
   if (input) lines.push(`Task input: ${input}`);
@@ -71,7 +71,7 @@ function push(jobId, event) {
   for (const emit of subscribers.get(jobId) || []) emit(event);
 }
 
-export function startJob(mode, args = {}, provider = process.env.GIGOPS_AGENT_PROVIDER || 'claude') {
+export function startJob(mode, args = {}, provider = process.env.GIGPILOT_AGENT_PROVIDER || 'claude') {
   const providerId = normalizeProvider(provider);
   const jobId = randomUUID();
   const prompt = buildPrompt(mode, args, providerId);

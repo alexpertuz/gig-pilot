@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * doctor.mjs — Setup validation for gig-ops
+ * doctor.mjs — Setup validation for gig-pilot
  * Checks all prerequisites and prints a pass/fail checklist.
  */
 
@@ -116,7 +116,7 @@ function checkPlaywrightMcp(root) {
     fix: [
       'Browser-driven JD fetching and liveness checks (scan / pipeline / apply) need the',
       'Playwright MCP server, which this project does not configure yet — SPA job boards',
-      'may return empty or stale content. Tracking: https://github.com/antoniopertuz/gig-ops/issues/1',
+      'may return empty or stale content. Tracking: https://github.com/antoniopertuz/gig-pilot/issues/1',
     ],
   };
 }
@@ -236,7 +236,7 @@ async function checkPortalSlugs(root) {
 
 const PIPELINE_SKELETON = `# Pipeline — Pending URLs
 
-Paste job URLs below as \`- [ ] {url}\` then run \`/gig-ops pipeline\`.
+Paste job URLs below as \`- [ ] {url}\` then run \`/gig-pilot pipeline\`.
 
 ## Pending
 
@@ -261,7 +261,7 @@ function checkPipelineFile() {
 }
 
 async function main() {
-  console.log('\ngig-ops doctor');
+  console.log('\ngig-pilot doctor');
   console.log('================\n');
 
   const checks = [

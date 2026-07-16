@@ -1,4 +1,4 @@
-# sources.yml — gig-ops source configuration template
+# sources.yml — gig-pilot source configuration template
 # Copy to the project root:  cp templates/sources.example.yml sources.yml
 # Tuned for DEMAND-SIDE freelance gigs (someone looking to hire), not full-time roles.
 

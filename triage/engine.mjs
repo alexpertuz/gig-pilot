@@ -189,7 +189,7 @@ function survivorOrder(a, b) {
 
 export async function triageCandidates(candidates, {
   profile = {},
-  provider = process.env.GIGOPS_AGENT_PROVIDER || 'claude',
+  provider = process.env.GIGPILOT_AGENT_PROVIDER || 'claude',
   runtimeFingerprint = `${provider}:default`,
   cache = {},
   reclassify = false,

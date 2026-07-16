@@ -8,22 +8,22 @@
  * Also strips markdown bold (**) and dates from the status field,
  * moving DUPLICADO info to the notes column.
  *
- * Run: node gig-ops/normalize-statuses.mjs [--dry-run]
+ * Run: node gig-pilot/normalize-statuses.mjs [--dry-run]
  */
 
 import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-const GIG_OPS = dirname(fileURLToPath(import.meta.url));
+const GIG_PILOT = dirname(fileURLToPath(import.meta.url));
 // Support both layouts: data/leads.md (boilerplate) and applications.md (original)
-const APPS_FILE = existsSync(join(GIG_OPS, 'data/leads.md'))
-  ? join(GIG_OPS, 'data/leads.md')
-  : join(GIG_OPS, 'applications.md');
+const APPS_FILE = existsSync(join(GIG_PILOT, 'data/leads.md'))
+  ? join(GIG_PILOT, 'data/leads.md')
+  : join(GIG_PILOT, 'applications.md');
 const DRY_RUN = process.argv.includes('--dry-run');
 
 // Ensure required directories exist (fresh setup)
-mkdirSync(join(GIG_OPS, 'data'), { recursive: true });
+mkdirSync(join(GIG_PILOT, 'data'), { recursive: true });
 
 // Canonical status mapping
 function normalizeStatus(raw) {

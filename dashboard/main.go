@@ -7,10 +7,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/santifer/gig-ops/dashboard/internal/data"
-	"github.com/santifer/gig-ops/dashboard/internal/model"
-	"github.com/santifer/gig-ops/dashboard/internal/theme"
-	"github.com/santifer/gig-ops/dashboard/internal/ui/screens"
+	"github.com/santifer/gig-pilot/dashboard/internal/data"
+	"github.com/santifer/gig-pilot/dashboard/internal/model"
+	"github.com/santifer/gig-pilot/dashboard/internal/theme"
+	"github.com/santifer/gig-pilot/dashboard/internal/ui/screens"
 )
 
 type viewState int
@@ -26,13 +26,13 @@ type appModel struct {
 	viewer          screens.ViewerModel
 	progress        screens.ProgressModel
 	state           viewState
-	gigOpsPath      string
+	gigPilotPath      string
 	theme           theme.Theme
 	progressMetrics model.ProgressMetrics
 }
 
 func (m *appModel) reloadPipelineData() {
-	leads := data.ParseLeads(m.gigOpsPath)
+	leads := data.ParseLeads(m.gigPilotPath)
 	metrics := data.ComputeMetrics(leads)
 	m.progressMetrics = data.ComputeProgressMetrics(leads)
 	m.pipeline = m.pipeline.WithReloadedData(leads, metrics)
@@ -60,12 +60,12 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case screens.PipelineLoadReportMsg:
-		archetype, tldr := data.LoadReportSummary(msg.GigOpsPath, msg.ReportPath)
+		archetype, tldr := data.LoadReportSummary(msg.GigPilotPath, msg.ReportPath)
 		m.pipeline.EnrichReport(msg.ReportPath, archetype, tldr)
 		return m, nil
 
 	case screens.PipelineUpdateStatusMsg:
-		err := data.UpdateLeadStatus(msg.GigOpsPath, msg.Lead, msg.NewStatus)
+		err := data.UpdateLeadStatus(msg.GigPilotPath, msg.Lead, msg.NewStatus)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "WARN: status update failed: %v\n", err)
 		}
@@ -140,12 +140,12 @@ func (m appModel) View() string {
 }
 
 func main() {
-	pathFlag := flag.String("path", ".", "Path to gig-ops directory")
+	pathFlag := flag.String("path", ".", "Path to gig-pilot directory")
 	flag.Parse()
 
-	gigOpsPath := *pathFlag
+	gigPilotPath := *pathFlag
 
-	leads := data.ParseLeads(gigOpsPath)
+	leads := data.ParseLeads(gigPilotPath)
 	if leads == nil {
 		// Empty leads.md is OK — show an empty dashboard
 		leads = []model.Lead{}
@@ -155,13 +155,13 @@ func main() {
 	progressMetrics := data.ComputeProgressMetrics(leads)
 
 	t := theme.NewTheme("auto")
-	pm := screens.NewPipelineModel(t, leads, metrics, gigOpsPath, 120, 40)
+	pm := screens.NewPipelineModel(t, leads, metrics, gigPilotPath, 120, 40)
 
 	for _, lead := range leads {
 		if lead.ReportPath == "" {
 			continue
 		}
-		archetype, tldr := data.LoadReportSummary(gigOpsPath, lead.ReportPath)
+		archetype, tldr := data.LoadReportSummary(gigPilotPath, lead.ReportPath)
 		if archetype != "" || tldr != "" {
 			pm.EnrichReport(lead.ReportPath, archetype, tldr)
 		}
@@ -169,7 +169,7 @@ func main() {
 
 	m := appModel{
 		pipeline:        pm,
-		gigOpsPath:      gigOpsPath,
+		gigPilotPath:      gigPilotPath,
 		theme:           t,
 		progressMetrics: progressMetrics,
 	}

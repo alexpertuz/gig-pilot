@@ -11,9 +11,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/santifer/gig-ops/dashboard/internal/data"
-	"github.com/santifer/gig-ops/dashboard/internal/model"
-	"github.com/santifer/gig-ops/dashboard/internal/theme"
+	"github.com/santifer/gig-pilot/dashboard/internal/data"
+	"github.com/santifer/gig-pilot/dashboard/internal/model"
+	"github.com/santifer/gig-pilot/dashboard/internal/theme"
 )
 
 // PipelineClosedMsg is emitted when the pipeline screen is dismissed.
@@ -33,13 +33,13 @@ type PipelineOpenURLMsg struct {
 
 // PipelineLoadReportMsg requests lazy loading of a report summary.
 type PipelineLoadReportMsg struct {
-	GigOpsPath string
+	GigPilotPath string
 	ReportPath string
 }
 
 // PipelineUpdateStatusMsg requests a status update for a lead.
 type PipelineUpdateStatusMsg struct {
-	GigOpsPath string
+	GigPilotPath string
 	Lead       model.Lead
 	NewStatus  string
 }
@@ -142,7 +142,7 @@ type PipelineModel struct {
 	viewMode      string // "grouped" or "flat"
 	width, height int
 	theme         theme.Theme
-	gigOpsPath string
+	gigPilotPath string
 	reportCache   map[string]reportSummary
 	// Status picker sub-state
 	statusPicker bool
@@ -157,7 +157,7 @@ type PipelineModel struct {
 }
 
 // NewPipelineModel creates a new pipeline screen.
-func NewPipelineModel(t theme.Theme, apps []model.Lead, metrics model.PipelineMetrics, gigOpsPath string, width, height int) PipelineModel {
+func NewPipelineModel(t theme.Theme, apps []model.Lead, metrics model.PipelineMetrics, gigPilotPath string, width, height int) PipelineModel {
 	visible := make(map[ColumnID]bool)
 	for _, col := range optionalCols {
 		visible[col.id] = col.onByDefault
@@ -171,7 +171,7 @@ func NewPipelineModel(t theme.Theme, apps []model.Lead, metrics model.PipelineMe
 		width:         width,
 		height:        height,
 		theme:         t,
-		gigOpsPath: gigOpsPath,
+		gigPilotPath: gigPilotPath,
 		reportCache:   make(map[string]reportSummary),
 		visibleCols:   visible,
 	}
@@ -223,7 +223,7 @@ func (m PipelineModel) WithReloadedData(apps []model.Lead, metrics model.Pipelin
 		selectedGig = app.Gig
 	}
 
-	reloaded := NewPipelineModel(m.theme, apps, metrics, m.gigOpsPath, m.width, m.height)
+	reloaded := NewPipelineModel(m.theme, apps, metrics, m.gigPilotPath, m.width, m.height)
 	reloaded.sortMode = m.sortMode
 	reloaded.activeTab = m.activeTab
 	reloaded.viewMode = m.viewMode
@@ -376,7 +376,7 @@ func (m PipelineModel) handleKey(msg tea.KeyMsg) (PipelineModel, tea.Cmd) {
 
 	case "enter":
 		if app, ok := m.CurrentApp(); ok && app.ReportPath != "" {
-			fullPath := filepath.Join(m.gigOpsPath, app.ReportPath)
+			fullPath := filepath.Join(m.gigPilotPath, app.ReportPath)
 			title := fmt.Sprintf("%s — %s", app.Source, app.Gig)
 			jobURL := app.JobURL
 			return m, func() tea.Msg {
@@ -534,7 +534,7 @@ func (m PipelineModel) handleStatusPicker(msg tea.KeyMsg) (PipelineModel, tea.Cm
 			newStatus := statusOptions[m.statusCursor]
 			return m, func() tea.Msg {
 				return PipelineUpdateStatusMsg{
-					GigOpsPath: m.gigOpsPath,
+					GigPilotPath: m.gigPilotPath,
 					Lead:       app,
 					NewStatus:     newStatus,
 				}
@@ -578,10 +578,10 @@ func (m PipelineModel) loadCurrentReport() tea.Cmd {
 	if _, cached := m.reportCache[app.ReportPath]; cached {
 		return nil
 	}
-	path := m.gigOpsPath
+	path := m.gigPilotPath
 	report := app.ReportPath
 	return func() tea.Msg {
-		return PipelineLoadReportMsg{GigOpsPath: path, ReportPath: report}
+		return PipelineLoadReportMsg{GigPilotPath: path, ReportPath: report}
 	}
 }
 
@@ -1274,7 +1274,7 @@ func (m PipelineModel) renderHelp() string {
 				keyStyle.Render("Esc") + descStyle.Render(" cancel"))
 	}
 
-	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render("gig-ops")
+	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render("gig-pilot")
 
 	keys := keyStyle.Render("↑↓/jk") + descStyle.Render(" nav  ") +
 		keyStyle.Render("←→/hl") + descStyle.Render(" tabs  ") +

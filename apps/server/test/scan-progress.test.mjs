@@ -10,8 +10,8 @@ test('formatScanProgressEvent emits a machine-readable source progress line', ()
     jobsInspected: 42,
   });
 
-  assert.match(line, /^::gig-ops-scan::/);
-  assert.deepEqual(JSON.parse(line.replace(/^::gig-ops-scan::/, '')), {
+  assert.match(line, /^::gig-pilot-scan::/);
+  assert.deepEqual(JSON.parse(line.replace(/^::gig-pilot-scan::/, '')), {
     type: 'source',
     name: 'RemoteOK',
     completed: 3,

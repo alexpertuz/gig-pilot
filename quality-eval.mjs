@@ -15,7 +15,7 @@ const DEFAULT_CORPUS = path.join(HERE, 'triage', 'fixtures', 'relevance-corpus.j
 const DEFAULT_PROFILE = path.join(HERE, 'config', 'profile.yml');
 
 function qualityUrl(id) {
-  return `https://quality.gig-ops.local/${encodeURIComponent(id)}`;
+  return `https://quality.gig-pilot.local/${encodeURIComponent(id)}`;
 }
 
 function corpusCandidate(entry) {
@@ -182,7 +182,7 @@ async function main(args) {
     const inlineProvider = optionValue(args, '--active-provider');
     const selected = inlineProvider && !inlineProvider.startsWith('--')
       ? inlineProvider
-      : optionValue(args, '--agent-provider') || process.env.GIGOPS_AGENT_PROVIDER || 'claude';
+      : optionValue(args, '--agent-provider') || process.env.GIGPILOT_AGENT_PROVIDER || 'claude';
     payload = await activeProviderDecisions(corpus, normalizeProvider(selected));
   }
 

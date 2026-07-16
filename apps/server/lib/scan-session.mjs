@@ -1,5 +1,5 @@
 const MAX_LOG_LINES = 500;
-const EVENT_PREFIX = '::gig-ops-scan::';
+const EVENT_PREFIX = '::gig-pilot-scan::';
 
 function emptyState() {
   return {

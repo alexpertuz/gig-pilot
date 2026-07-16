@@ -3,8 +3,8 @@ package screens
 import (
 	"testing"
 
-	"github.com/santifer/gig-ops/dashboard/internal/model"
-	"github.com/santifer/gig-ops/dashboard/internal/theme"
+	"github.com/santifer/gig-pilot/dashboard/internal/model"
+	"github.com/santifer/gig-pilot/dashboard/internal/theme"
 )
 
 func TestSortCycleIncludesGigColumns(t *testing.T) {

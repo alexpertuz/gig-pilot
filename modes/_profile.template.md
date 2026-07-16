@@ -1,4 +1,4 @@
-# User Profile Context -- gig-ops
+# User Profile Context -- gig-pilot
 
 <!-- ============================================================
      THIS FILE IS YOURS. It will NEVER be auto-updated.

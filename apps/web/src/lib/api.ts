@@ -117,11 +117,11 @@ export interface Health {
 }
 
 export function getAgentProvider() {
-  return localStorage.getItem('gigops.agentProvider') || undefined;
+  return localStorage.getItem('gigpilot.agentProvider') || undefined;
 }
 
 export function setAgentProvider(provider: string) {
-  localStorage.setItem('gigops.agentProvider', provider);
+  localStorage.setItem('gigpilot.agentProvider', provider);
 }
 
 export const api = {
