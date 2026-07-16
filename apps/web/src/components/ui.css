@@ -730,14 +730,48 @@ button.stat:active { background: var(--bg-2); }
   display: flex; flex-direction: column; z-index: var(--z-drawer);
 }
 .ai-console.open { transform: translateX(0); }
-.ai-head, .ai-foot {
-  padding: 13px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;
-  align-items: center; color: var(--muted); font-size: 12.5px;
+.ai-head {
+  padding: 13px 18px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  color: var(--muted); font-size: 12.5px;
 }
-.ai-foot { border-top: 1px solid var(--border); border-bottom: none; }
-.ai-body { flex: 1; overflow: auto; padding: 18px; white-space: pre-wrap; font-size: 13px; line-height: 1.65; }
-.cursor { animation: blink 1s steps(2) infinite; color: var(--accent); }
-@keyframes blink { 50% { opacity: 0; } }
+.ai-console-body { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+
+.ai-state { padding: 30px 26px 22px; text-align: center; }
+.ai-state-icon {
+  width: 46px; height: 46px; margin: 0 auto 14px;
+  display: grid; place-items: center; border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.ai-state-icon svg {
+  width: 24px; height: 24px; fill: none; stroke: var(--accent);
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+.ai-state-icon.ai-ok { background: color-mix(in srgb, var(--go) 12%, transparent); }
+.ai-state-icon.ai-ok svg { stroke: var(--go); }
+.ai-state-icon.ai-bad { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.ai-state-icon.ai-bad svg { stroke: var(--danger); }
+
+.ai-state h2, .ai-phase { font-size: 16px; margin: 0 0 4px; }
+.ai-sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+.ai-running .scan-progress { max-width: 220px; margin: 4px auto 0; }
+
+.ai-report {
+  text-align: left; margin-top: 6px;
+  border-top: 1px solid var(--border); padding-top: 16px;
+}
+.ai-actions { display: flex; gap: 8px; justify-content: center; margin-top: 18px; }
+
+.ai-tech { margin-top: auto; border-top: 1px solid var(--border); }
+.ai-tech > summary {
+  padding: 12px 18px; cursor: pointer; list-style: none;
+  display: flex; justify-content: space-between; color: var(--muted); font-size: 12px;
+}
+.ai-tech > summary::-webkit-details-marker { display: none; }
+.ai-log {
+  padding: 0 18px 18px; white-space: pre-wrap; font-size: 12px; line-height: 1.6;
+  color: var(--muted); max-height: 40dvh; overflow: auto;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
