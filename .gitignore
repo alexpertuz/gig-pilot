@@ -67,6 +67,10 @@ reports/*-RESERVED.md
 career-dashboard
 package-lock.json
 
+# Local tool caches (Serena MCP, Superpowers skill state)
+.serena/
+.superpowers/
+
 # Playwright MCP server run artifacts (ephemeral, machine-local — never commit)
 .playwright-mcp/
 
