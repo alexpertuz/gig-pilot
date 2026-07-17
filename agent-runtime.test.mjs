@@ -5,6 +5,7 @@ import { PassThrough } from 'node:stream';
 
 import {
   buildAgentSpawn,
+  NON_INTERACTIVE_DIRECTIVE,
   normalizeProvider,
   runAgentText,
 } from './agent-runtime.mjs';
@@ -54,6 +55,24 @@ test('Claude structured tasks disable tools without pinning a model', () => {
   assert.ok(toolsIndex >= 0);
   assert.equal(spec.args[toolsIndex + 1], '');
   assert.equal(spec.args.includes('--model'), false);
+});
+
+test('Claude passes appendSystemPrompt via --append-system-prompt', () => {
+  const spec = buildAgentSpawn('claude', '/gig-pilot gig https://x/y', {
+    appendSystemPrompt: NON_INTERACTIVE_DIRECTIVE,
+  });
+  const i = spec.args.indexOf('--append-system-prompt');
+  assert.ok(i >= 0);
+  assert.equal(spec.args[i + 1], NON_INTERACTIVE_DIRECTIVE);
+});
+
+test('Codex prepends appendSystemPrompt to the stdin prompt', () => {
+  const spec = buildAgentSpawn('codex', 'do the thing', {
+    appendSystemPrompt: NON_INTERACTIVE_DIRECTIVE,
+  });
+  assert.equal(spec.args.includes('--append-system-prompt'), false);
+  assert.ok(spec.stdin.startsWith(NON_INTERACTIVE_DIRECTIVE));
+  assert.ok(spec.stdin.endsWith('do the thing'));
 });
 
 test('runAgentText collects the final Codex agent message', async () => {

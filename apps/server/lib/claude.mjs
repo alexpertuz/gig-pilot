@@ -3,25 +3,28 @@ import { randomUUID } from 'node:crypto';
 import {
   AGENT_PROVIDERS,
   buildAgentSpawn,
+  NON_INTERACTIVE_DIRECTIVE,
   normalizeProvider,
 } from '../../../agent-runtime.mjs';
 
 export { AGENT_PROVIDERS, normalizeProvider } from '../../../agent-runtime.mjs';
 
+// gig-pilot modes are invoked through the `gig-pilot` router skill
+// (`/gig-pilot <mode> <input>`). There is no bare `/gig` slash command.
 const MODES = {
-  gig: { slash: 'gig', file: 'modes/gig.md', input: (a) => a.url },
-  proposal: { slash: 'proposal', file: 'modes/proposal.md', input: (a) => a.report ?? a.url ?? '' },
-  patterns: { slash: 'patterns', file: 'modes/patterns.md' },
-  deep: { slash: 'deep', file: 'modes/deep.md', input: (a) => a.query ?? a.url ?? '' },
-  scan: { slash: 'scan', file: 'modes/scan.md' },
-  followup: { slash: 'followup', file: 'modes/followup.md' },
-  'agent-inbox': { slash: 'agent-inbox', file: 'modes/agent-inbox.md' },
+  gig: { mode: 'gig', file: 'modes/gig.md', input: (a) => a.url },
+  proposal: { mode: 'proposal', file: 'modes/proposal.md', input: (a) => a.report ?? a.url ?? '' },
+  patterns: { mode: 'patterns', file: 'modes/patterns.md' },
+  deep: { mode: 'deep', file: 'modes/deep.md', input: (a) => a.query ?? a.url ?? '' },
+  scan: { mode: 'scan', file: 'modes/scan.md' },
+  followup: { mode: 'followup', file: 'modes/followup.md' },
+  'agent-inbox': { mode: 'agent-inbox', file: 'modes/agent-inbox.md' },
 };
 
 function buildClaudePrompt(mode, args = {}) {
   const spec = MODES[mode];
   const input = spec.input?.(args) ?? '';
-  return `/${spec.slash} ${input}`.trim();
+  return `/gig-pilot ${spec.mode} ${input}`.trim();
 }
 
 function buildCodexPrompt(mode, args = {}) {
@@ -43,7 +46,11 @@ export function buildPrompt(mode, args = {}, provider = 'claude') {
 }
 
 let spawner = (prompt, providerId = normalizeProvider()) => {
-  const spec = buildAgentSpawn(providerId, prompt, { readOnly: false, ephemeral: false });
+  const spec = buildAgentSpawn(providerId, prompt, {
+    readOnly: false,
+    ephemeral: false,
+    appendSystemPrompt: NON_INTERACTIVE_DIRECTIVE,
+  });
   return { process: spawn(spec.bin, spec.args, spec.options), stdin: spec.stdin };
 };
 export function setSpawner(fn) { spawner = fn; }

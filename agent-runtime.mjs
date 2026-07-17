@@ -30,17 +30,34 @@ export function normalizeProvider(provider = process.env.GIGPILOT_AGENT_PROVIDER
   return id;
 }
 
-export function buildAgentSpawn(provider, prompt, { readOnly = false, ephemeral = readOnly } = {}) {
+// Directive for headless runs (web console, quality-eval): there is no human to
+// answer follow-up questions, so the agent must complete the task on its own.
+export const NON_INTERACTIVE_DIRECTIVE = [
+  'You are running in a non-interactive session. The user cannot reply, approve prompts, or paste anything.',
+  'Never ask the user questions or offer to wait for input — no "want me to…?", no "paste it here", no y/n prompts.',
+  'Fetch whatever you need yourself using the pre-approved tooling: run `node fetch-gig.mjs <url>` to retrieve a gig posting (it uses Reddit\'s .rss feed and needs no approval). Do not use WebFetch or curl.',
+  'If something cannot be retrieved after a retry, proceed with the information you have, state your assumptions explicitly, and still produce the final deliverable (e.g. the report). Do not stop to ask.',
+].join(' ');
+
+export function buildAgentSpawn(
+  provider,
+  prompt,
+  { readOnly = false, ephemeral = readOnly, appendSystemPrompt = '' } = {},
+) {
   const id = normalizeProvider(provider);
   const config = AGENT_PROVIDERS[id];
   let args;
+  let stdin = id === 'codex' ? prompt : null;
   if (id === 'codex') {
     args = ['exec', '--json'];
     if (ephemeral) args.push('--ephemeral');
     if (readOnly) args.push('--sandbox', 'read-only');
     args.push('--cd', REPO_ROOT, '-');
+    // codex exec has no system-prompt flag; prepend the directive to the prompt.
+    if (appendSystemPrompt) stdin = `${appendSystemPrompt}\n\n${prompt}`;
   } else {
     args = ['-p', prompt, '--output-format', 'stream-json', '--verbose'];
+    if (appendSystemPrompt) args.push('--append-system-prompt', appendSystemPrompt);
     if (ephemeral) args.push('--no-session-persistence');
     if (readOnly) args.push('--tools', '');
   }
@@ -48,7 +65,7 @@ export function buildAgentSpawn(provider, prompt, { readOnly = false, ephemeral 
     provider: id,
     bin: config.bin,
     args,
-    stdin: id === 'codex' ? prompt : null,
+    stdin,
     options: { cwd: REPO_ROOT, stdio: [id === 'codex' ? 'pipe' : 'ignore', 'pipe', 'pipe'] },
   };
 }

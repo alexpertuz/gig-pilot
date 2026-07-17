@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { buildPrompt, startJob, subscribe, getJob, setSpawner, _reset } from '../lib/claude.mjs';
 
-test('buildPrompt maps modes to slash commands', () => {
-  assert.equal(buildPrompt('gig', { url: 'https://x/y' }), '/gig https://x/y');
-  assert.equal(buildPrompt('proposal', { report: '007' }), '/proposal 007');
+test('buildPrompt routes modes through the gig-pilot skill', () => {
+  assert.equal(buildPrompt('gig', { url: 'https://x/y' }), '/gig-pilot gig https://x/y');
+  assert.equal(buildPrompt('proposal', { report: '007' }), '/gig-pilot proposal 007');
 });
 
 test('buildPrompt maps Codex to mode-file instructions', () => {
