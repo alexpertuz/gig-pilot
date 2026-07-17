@@ -1,8 +1,10 @@
 <div align="center">
 
-<!-- La imagen principal va aquí -->
+<img src="docs/logo.png" alt="GigPilot" width="420" />
 
-<h1>gig-pilot</h1>
+<p><a href="README.md">English</a> · <a href="README.es.md">Español</a></p>
+
+<img src="docs/hero-banner.png" alt="gig-pilot — Descubrimiento, evaluación y outreach personalizado con IA, todo desde tu terminal" width="100%" />
 
 <p><strong>Tu pipeline de freelance en piloto automático — desde la terminal.</strong></p>
 
@@ -12,6 +14,7 @@
 </p>
 
 <p>
+  <a href="#úsalo-desde-la-interfaz-web">Interfaz web</a> ·
   <a href="#inicio-rápido">Inicio rápido</a> ·
   <a href="#modos">Modos</a> ·
   <a href="#cómo-funciona">Cómo funciona</a> ·
@@ -28,13 +31,37 @@
   <a href="CONTRIBUTING.md"><img alt="PRs bienvenidos" src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" /></a>
 </p>
 
-<sub><a href="README.md">English</a> · <a href="README.es.md">Español</a></sub>
-
 </div>
 
 ---
 
 Trabajar como freelance es un puesto de ventas al que nunca te apuntaste. Buscar ofertas, filtrarlas, escribir propuestas y perseguir seguimientos se come las horas que preferirías dedicar a construir. gig-pilot ejecuta ese pipeline por ti y te devuelve tu tiempo — mientras cada archivo permanece en tu máquina y Git es tu única capa de sincronización.
+
+## Úsalo desde la interfaz web
+
+¿Prefieres hacer clic antes que escribir comandos? gig-pilot incluye una **interfaz web** opcional. Todo lo que puedes hacer desde la terminal — escanear fuentes, evaluar gigs, generar propuestas, rastrear leads, editar tu configuración — está disponible en el navegador. Los archivos planos siguen siendo la fuente de verdad, y las acciones de IA se ejecutan a través de tu agente CLI local (Claude Code o Codex).
+
+**Arráncala con un solo comando:**
+
+```bash
+# Modo desarrollo — web en :5273, API en :4317, ambas con recarga en vivo
+npm run ui:dev
+```
+
+Luego abre **http://localhost:5273** en tu navegador.
+
+```bash
+# Modo producción — un solo proceso sirve la app compilada + la API en :4317
+npm run ui:build      # compila el front-end una vez
+npm run ui            # → http://127.0.0.1:4317
+```
+
+> [!NOTE]
+> Las acciones de IA (**Evaluar**, **Generar propuesta**, **Analizar patrones**) lanzan tu agente CLI local dentro del repo y transmiten la salida al panel de consola. Esto requiere **Claude Code** o **Codex** instalado y con sesión iniciada. Revisa **Settings** dentro de la app para ver indicadores de estado en vivo y elegir tu proveedor. Consulta [`apps/README.md`](apps/README.md) para todas las opciones.
+
+
+
+¿Prefieres la terminal? Sigue leyendo — el resto de esta guía cubre el flujo por CLI.
 
 ## Qué hace
 

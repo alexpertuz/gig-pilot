@@ -1,8 +1,10 @@
 <div align="center">
 
-<!-- Hero image goes here -->
+<img src="docs/logo.png" alt="GigPilot" width="420" />
 
-<h1>gig-pilot</h1>
+<p><a href="README.md">English</a> · <a href="README.es.md">Español</a></p>
+
+<img src="docs/hero-banner.png" alt="gig-pilot — AI-powered discovery, evaluation and personalized outreach, all in your terminal" width="100%" />
 
 <p><strong>Your freelance pipeline, on autopilot — from the terminal.</strong></p>
 
@@ -12,6 +14,7 @@
 </p>
 
 <p>
+  <a href="#use-it-from-the-web-interface">Web UI</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#modes">Modes</a> ·
   <a href="#how-it-works">How it works</a> ·
@@ -28,13 +31,37 @@
   <a href="CONTRIBUTING.md"><img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" /></a>
 </p>
 
-<sub><a href="README.md">English</a> · <a href="README.es.md">Español</a></sub>
-
 </div>
 
 ---
 
 Freelancing is a sales job you never signed up for. Sourcing, vetting, writing proposals, and chasing follow-ups eats the hours you'd rather spend building. gig-pilot runs that pipeline for you and hands back your time — while every file stays on your machine and Git stays your only sync layer.
+
+## Use it from the web interface
+
+Prefer clicking to typing? gig-pilot ships an optional **web UI**. Everything you can do from the terminal — scan sources, evaluate gigs, generate proposals, track leads, edit your config — is available in the browser. The flat files stay the source of truth, and AI actions still run through your local agent CLI (Claude Code or Codex).
+
+**Start it in one command:**
+
+```bash
+# Dev mode — web on :5273, API on :4317, both with live reload
+npm run ui:dev
+```
+
+Then open **http://localhost:5273** in your browser.
+
+```bash
+# Production mode — a single process serves the built app + API on :4317
+npm run ui:build      # build the front-end once
+npm run ui            # → http://127.0.0.1:4317
+```
+
+> [!NOTE]
+> AI actions (**Evaluate**, **Generate proposal**, **Analyze patterns**) spawn your local agent CLI in the repo and stream the output to the console drawer. This requires **Claude Code** or **Codex** installed and logged in. Check the in-app **Settings** for live health indicators and to pick your provider. See [`apps/README.md`](apps/README.md) for all options.
+
+
+
+Prefer the terminal? Keep reading — the rest of this guide covers the CLI workflow.
 
 ## What it does
 
