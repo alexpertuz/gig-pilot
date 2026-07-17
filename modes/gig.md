@@ -16,15 +16,21 @@ The user provides one of:
 
 ---
 
-## Step 1 — Liveness gate (URL input only)
+## Step 1 — Fetch + liveness gate (URL input only)
 
-Before evaluating, verify the URL is live:
+Before evaluating, fetch the posting and verify it is live:
 
-1. Fetch the URL. If it returns 404/410/gone: report "Gig expired — URL returned {status}. No evaluation." Log to `data/scan-history.tsv` as `expired`. Stop.
-2. If uncertain (timeout, redirect, partial load): note "Liveness inconclusive — evaluating from cached/pasted content if available."
-3. If live: proceed.
+```bash
+node fetch-gig.mjs <url>
+```
 
-**Never use Playwright for this.** A simple fetch is sufficient and faster.
+`fetch-gig.mjs` prints a `LIVENESS:` line plus the normalized `TITLE`/`POSTER`/`POSTED`/`BODY`. It uses Reddit's `.rss` feed (the `.json` API is blocked from most IPs) and needs no permission approval.
+
+1. `LIVENESS: expired` (404/410): report "Gig expired — URL returned {status}. No evaluation." Log to `data/scan-history.tsv` as `expired`. Stop.
+2. `LIVENESS: uncertain`: note "Liveness inconclusive." Evaluate from the title and any pasted content; mark blocks that need the body as "not specified" rather than inventing them.
+3. `LIVENESS: live`: use the printed `BODY` as the post text and proceed.
+
+**Never use Playwright, WebFetch, or curl for this** — `node fetch-gig.mjs` is the sanctioned path and the only one that works headless. A simple fetch is sufficient and faster.
 
 ---
 
@@ -104,14 +110,16 @@ Next: run /proposal to draft outreach, or /pipeline to continue the inbox.
 
 ---
 
-## Step 6 — Tracker update (optional, ask user)
+## Step 6 — Tracker update
 
-Ask: "Add this to leads tracker? (y/n)"
+The lead lives in `data/leads.md` (a user-layer file). `tracker.mjs` currently
+exposes only `sync | query | history | export` — there is **no `add` command**, so
+do not invent one and never hand-edit `data/leads.md` (cardinal rule).
 
-If yes:
-```bash
-node tracker.mjs add --gig "{title}" --poster "{poster}" --source "{source}" --score {score} --status new --report {num}
-```
+- **Interactive** session: point the user to `/gig-pilot tracker` to record the lead.
+- **Non-interactive** session (e.g. the web console — you'll be told so in the
+  system prompt): do not ask. Note in the summary that the report was saved and the
+  lead can be tracked via `/gig-pilot tracker`, then finish.
 
 ---
 

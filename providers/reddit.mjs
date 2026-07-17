@@ -85,7 +85,7 @@ async function fetchRss(url) {
  * @param {string} xml
  * @returns {{ title: string, link: string, updated: string, author: string, content: string }[]}
  */
-function parseAtom(xml) {
+export function parseAtom(xml) {
   const entries = [];
   const entryRe = /<entry>([\s\S]*?)<\/entry>/g;
   let m;
