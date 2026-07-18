@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -6,7 +8,29 @@ export const REPO_ROOT = process.env.GIGPILOT_ROOT
   ? path.resolve(process.env.GIGPILOT_ROOT)
   : path.dirname(fileURLToPath(import.meta.url));
 
-export const claudeBin = process.env.GIGPILOT_CLAUDE_BIN || 'claude';
+// On Windows, spawn/execFile without a shell cannot run the `claude.cmd` shim
+// that npm puts on PATH (Node rejects .cmd/.bat for security), so a bare
+// 'claude' fails with ENOENT even when the CLI is installed and logged in.
+// Probe the known locations of the native claude.exe instead.
+function resolveClaudeBin() {
+  if (process.env.GIGPILOT_CLAUDE_BIN) return process.env.GIGPILOT_CLAUDE_BIN;
+  if (process.platform !== 'win32') return 'claude';
+  const home = process.env.USERPROFILE || homedir();
+  const candidates = [
+    // Native installer (irm https://claude.ai/install.ps1 | iex)
+    path.join(home, '.local', 'bin', 'claude.exe'),
+    // npm global install ships a native launcher inside the package
+    process.env.APPDATA
+      ? path.join(process.env.APPDATA, 'npm', 'node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe')
+      : null,
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return 'claude';
+}
+
+export const claudeBin = resolveClaudeBin();
 export const codexBin = process.env.GIGPILOT_CODEX_BIN || 'codex';
 
 export const AGENT_PROVIDERS = {
@@ -56,17 +80,21 @@ export function buildAgentSpawn(
     // codex exec has no system-prompt flag; prepend the directive to the prompt.
     if (appendSystemPrompt) stdin = `${appendSystemPrompt}\n\n${prompt}`;
   } else {
-    args = ['-p', prompt, '--output-format', 'stream-json', '--verbose'];
+    // The prompt travels via stdin, not argv: triage batches embed whole gig
+    // postings, and Windows caps the command line at ~32K chars, so passing
+    // them as an argument fails with spawn ENAMETOOLONG.
+    args = ['-p', '--output-format', 'stream-json', '--verbose'];
     if (appendSystemPrompt) args.push('--append-system-prompt', appendSystemPrompt);
     if (ephemeral) args.push('--no-session-persistence');
     if (readOnly) args.push('--tools', '');
+    stdin = prompt;
   }
   return {
     provider: id,
     bin: config.bin,
     args,
     stdin,
-    options: { cwd: REPO_ROOT, stdio: [id === 'codex' ? 'pipe' : 'ignore', 'pipe', 'pipe'] },
+    options: { cwd: REPO_ROOT, stdio: [stdin == null ? 'ignore' : 'pipe', 'pipe', 'pipe'] },
   };
 }
 

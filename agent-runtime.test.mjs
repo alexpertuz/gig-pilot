@@ -50,11 +50,22 @@ test('Codex structured tasks are ephemeral and read-only without pinning a model
 test('Claude structured tasks disable tools without pinning a model', () => {
   const spec = buildAgentSpawn('claude', 'classify these candidates', { readOnly: true });
 
-  assert.match(spec.bin, /claude$/);
+  assert.match(spec.bin, /claude(\.exe)?$/);
   const toolsIndex = spec.args.indexOf('--tools');
   assert.ok(toolsIndex >= 0);
   assert.equal(spec.args[toolsIndex + 1], '');
   assert.equal(spec.args.includes('--model'), false);
+});
+
+test('Claude receives the prompt via stdin, never argv', () => {
+  // Triage prompts embed whole gig postings; on Windows argv is capped at
+  // ~32K chars and overflowing it fails with spawn ENAMETOOLONG.
+  const prompt = 'classify these candidates';
+  const spec = buildAgentSpawn('claude', prompt);
+
+  assert.equal(spec.args.includes(prompt), false);
+  assert.equal(spec.stdin, prompt);
+  assert.equal(spec.options.stdio[0], 'pipe');
 });
 
 test('Claude passes appendSystemPrompt via --append-system-prompt', () => {
