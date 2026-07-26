@@ -1,6 +1,6 @@
 {
   "name": "gig-pilot",
-  "version": "0.1.0",
+  "version": "1.13.0",
   "description": "AI-powered freelance pipeline — evaluate gigs, generate proposals, scan sources, track leads",
   "private": true,
   "scripts": {
